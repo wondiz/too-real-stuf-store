@@ -1,0 +1,19 @@
+/* =====================================================
+   published.css : "NEW! REVIEW!" on the main page (home.html), shown once the visitor's review has been accepted. See js/published.js.
+   The graphic is images/review-published.png (700 x 1713). Their review is written onto its white area.
+   ===================================================== */
+.pub-dim { position: fixed; inset: 0; z-index: 53; background: rgba(0, 0, 0, .55); }                  /* the page behind the window, dimmed */
+.pub-layer { z-index: 54; }
+/* where their words go: shares of the graphic (the white area, clear of the eyes at the top-left and the photo at the bottom). Nudge these if it is a little off. */
+.pub-text { position: absolute; left: 17.9%; top: 41%; width: 77.9%; height: 28%; overflow: hidden; margin: 0; color: #000;
+            font: 400 3.5cqw/1.35 "Intel One Mono", "Courier New", monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* the screen glitches out */
+.pub-glitching { overflow: hidden !important; }
+.pub-bars { position: fixed; inset: 0; z-index: 1900; pointer-events: none; mix-blend-mode: difference; }
+.pub-bars i { position: absolute; left: 0; right: 0; background: #0ff; }
+
+/* the last screen: three lines, nothing else. No sound, no typing, no movement. */
+.pub-final { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 0 8vw; background: #f4f1ea; color: #2b2b2b; text-align: center;
+             font: 400 clamp(13px, 1.5vw, 20px)/1.3 "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif; letter-spacing: .1em; }   /* small, alone in a big empty space: change the size here */
+.pub-final p { margin: 0; padding-left: .1em; }                /* the padding balances the letter spacing, so the words sit exactly in the middle */

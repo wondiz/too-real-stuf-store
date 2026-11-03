@@ -1,0 +1,31 @@
+/* =====================================================
+   review-game.css : the "Make a Review" window (product page, js/review-game.js).
+   Same old-computer frame as the certificates (css/certs.css: .ct-frame, .ct-body, .ct-title, .ct-x). Sizes are shares of the window's width, so it scales.
+   ===================================================== */
+.rg-layer { position: fixed; inset: 0; z-index: 55; pointer-events: none; }
+.rg-win { position: absolute; container-type: inline-size; aspect-ratio: 1412 / 945; pointer-events: auto; user-select: none; touch-action: none;
+          animation: ctIn .22s steps(4, end) both; filter: drop-shadow(6px 8px 0 rgba(0, 0, 0, .4)); }
+.rg-win.hit { animation: rgHit .35s steps(6, end); }
+@keyframes rgHit { 0%, 100% { transform: none; } 20% { transform: translate(-6px, 2px); } 40% { transform: translate(6px, -2px); } 60% { transform: translate(-4px, 1px); } 80% { transform: translate(4px, 0); } }
+.rg-body { display: block; background: #fff; font-family: var(--mono, monospace); }
+.rg-scroll { position: absolute; inset: 0; overflow-y: auto; padding: 2.2cqw 3cqw 3cqw; box-sizing: border-box; scrollbar-width: thin; user-select: text; }
+.rg-h { margin: 0 0 2cqw; font: 700 3.1cqw/1.2 var(--mono, monospace); letter-spacing: .06em; }
+.rg-row { display: flex; justify-content: space-between; gap: 2cqw; padding: .9cqw 0; border-bottom: 1px solid #e4e4e4; font: 400 2.2cqw/1.35 var(--mono, monospace); color: #666; }
+.rg-row.bad .rg-ra { color: #f00; }
+.rg-ra { flex: none; font-weight: 700; color: #000; }
+.rg-field { padding: 2.4cqw 0 1cqw; }
+.rg-l { margin: 0 0 .8cqw; font: 400 2cqw/1.2 var(--mono, monospace); color: #999; letter-spacing: .08em; text-transform: uppercase; }
+.rg-q { margin: 0 0 1.8cqw; min-height: 2.8em; font: 400 2.9cqw/1.4 var(--mono, monospace); color: #000; }
+.rg-a { display: flex; gap: 2cqw; align-items: center; min-height: 6cqw; }
+.rg-yn { min-width: 14cqw; padding: .9cqw 2.4cqw; font: 400 2.8cqw/1.2 var(--mono, monospace); background: #ddd; border: 2px solid; border-color: #fff #666 #666 #fff; cursor: pointer; }
+.rg-yn:hover:not(:disabled), .rg-yn:focus-visible { background: #f00; color: #fff; border-color: #f66 #900 #900 #f66; outline: none; }
+.rg-yn:active:not(:disabled) { border-color: #666 #fff #fff #666; }
+.rg-yn:disabled, .rg-star:disabled { cursor: default; opacity: .55; }
+.rg-star { padding: 0 .4cqw; font: 400 5.6cqw/1 var(--mono, monospace); background: none; border: 0; color: #ccc; cursor: pointer; }
+.rg-star.on { color: #f00; }
+.rg-s { margin: 1.4cqw 0 0; min-height: 1.5em; font: 400 2.8cqw/1.4 var(--mono, monospace); }
+.rg-s.good { color: #444; }
+.rg-s.tier1 { color: #b30000; } .rg-s.tier2 { color: #d00; font-weight: 700; } .rg-s.tier3 { color: #f00; font-weight: 700; } .rg-s.tier4 { color: #f00; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.rg-end { padding: 6cqw 0 2cqw; text-align: center; }
+.rg-eb { margin: 0; font: 700 4.4cqw/1.2 var(--mono, monospace); }
+.rg-es { margin: 1.6cqw 0 0; font: 400 3cqw/1.4 var(--mono, monospace); color: #555; }

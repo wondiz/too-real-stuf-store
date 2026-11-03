@@ -1,0 +1,103 @@
+/* =====================================================
+   assistant.css : Maya, the site's helper. A round button stuck to the bottom-left corner;
+   tapping it opens a phone-style messages screen. Uses the site's red, fonts and outlines (mainpage.css).
+   ===================================================== */
+.bot { position: fixed; left: 24px; bottom: 24px; z-index: 56; font-family: var(--data); }   /* above the vignette (50), under the ghost cursor (60) */
+
+/* Maya's face: a letter for now. If images/ibbi.png exists, assistant.js puts it here instead. */
+.ibbi-face {
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  background: #fff center / cover no-repeat; color: var(--red); font: 700 24px/1 var(--serif);
+}
+
+/* the round button */
+.bot-btn {
+  position: relative; width: 58px; height: 58px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--red); background: #fff; cursor: pointer;
+}
+.bot-btn .ibbi-face { width: 100%; height: 100%; }
+.bot-btn:hover, .bot-btn:focus-visible { background: var(--red); outline: none; }
+.bot-btn:hover .ibbi-face:not(.has-img), .bot-btn:focus-visible .ibbi-face:not(.has-img) { background: var(--red); color: #fff; }
+.bot-dot { position: absolute; top: 0; right: 0; width: 14px; height: 14px; border-radius: 50%; background: var(--red); border: 2px solid #fff; }
+.bot-dot[hidden] { display: none; }
+
+/* the greeting speech bubble beside the button */
+.bot-tip {
+  position: absolute; left: 72px; bottom: 6px; width: 230px; padding: 10px 14px;
+  background: #fff; border: 1px solid var(--red); color: var(--red); font-size: 14px; line-height: 1.35;
+  opacity: 0; transform: translateX(-8px); transition: opacity .3s ease, transform .3s ease; pointer-events: none;
+}
+.bot-tip::before { content: ''; position: absolute; left: -7px; bottom: 16px; width: 12px; height: 12px; background: #fff; border-left: 1px solid var(--red); border-bottom: 1px solid var(--red); transform: rotate(45deg); }
+.bot-tip.show { opacity: 1; transform: none; }
+
+/* the messages box: a plain white box with a thin red outline, like the Figma popup */
+.phone {
+  position: absolute; left: 0; bottom: 70px; width: min(320px, calc(100vw - 48px)); height: min(500px, calc(100vh - 110px));
+  display: flex; flex-direction: column; background: #fff; border: 1px solid var(--red); color: #000;
+}
+.phone[hidden] { display: none; }
+.phone-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--red); color: var(--red); font-size: 16px; }
+.phone-head .ibbi-face { width: 32px; height: 32px; border: 1px solid var(--red); font-size: 18px; }
+.phone-head b { flex: 1; font-weight: 400; }
+.phone-x { padding: 0; border: 0; background: none; color: var(--red); font-size: 24px; line-height: 1; cursor: pointer; }
+
+.phone-log { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; line-height: 1.4; }
+.phone-log p { max-width: 85%; padding: 7px 10px; border: 1px solid var(--line); align-self: flex-start; }
+.phone-log p.me { align-self: flex-end; background: var(--red); border-color: var(--red); color: #fff; }
+.phone-log p.typing { display: flex; gap: 4px; padding: 10px 12px; }
+.phone-log p.typing i { width: 6px; height: 6px; border-radius: 50%; background: #999; animation: ibbiDot 1s infinite; }
+.phone-log p.typing i:nth-child(2) { animation-delay: .15s; }
+.phone-log p.typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes ibbiDot { 0%, 60%, 100% { opacity: .3; } 30% { opacity: 1; } }
+
+.phone-opts { padding: 0 12px 10px; display: flex; flex-direction: column; gap: 6px; }
+.phone-opts[hidden] { display: none; }
+.phone-opts button { padding: 7px 10px; border: 1px solid var(--red); background: #fff; color: var(--red); font: 400 12px/1.3 var(--data); text-align: left; cursor: pointer; }
+.phone-opts button:hover, .phone-opts button:focus-visible { background: var(--red); color: #fff; outline: none; }
+.phone-input { margin: 0 12px 12px; padding: 8px 10px; border: 1px solid var(--line); color: #999; font-size: 12px; }   /* for show: nobody can type here */
+
+@media (prefers-reduced-motion: reduce) {
+  .bot-tip { transition: none; }
+  .phone-log p.typing i { animation: none; opacity: .6; }
+}
+
+/* MORE NOTICEABLE: a bigger button that slides in with a bounce, a glow, a ring that pulses and a little wiggle until it has been opened */
+.bot { animation: ibbiIn .8s cubic-bezier(.2, 1.4, .4, 1) .3s both; }
+@keyframes ibbiIn { from { transform: translateX(-120px); opacity: 0; } }
+.bot-btn { width: 72px; height: 72px; border-width: 2px; box-shadow: 0 0 0 4px rgba(255, 0, 0, .15), 0 6px 22px rgba(255, 0, 0, .35); }
+.bot-dot { width: 20px; height: 20px; top: -2px; right: -2px; }
+.bot-tip { left: 90px; bottom: 14px; width: 260px; padding: 12px 16px; font-size: 15px; box-shadow: 0 6px 22px rgba(255, 0, 0, .22); }
+.phone { bottom: 88px; }
+.bot-btn::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--red); opacity: 0; pointer-events: none; }
+.bot-btn:has(.bot-dot:not([hidden]))::after { animation: ibbiRing 1.8s ease-out infinite; }
+.bot-btn:has(.bot-dot:not([hidden])) { animation: ibbiWiggle 5s ease-in-out 2s infinite; }
+@keyframes ibbiRing { 0% { transform: scale(1); opacity: .8; } 100% { transform: scale(1.7); opacity: 0; } }
+@keyframes ibbiWiggle { 0%, 88%, 100% { transform: none; } 90% { transform: rotate(-9deg) scale(1.06); } 93% { transform: rotate(9deg) scale(1.06); } 96% { transform: rotate(-5deg); } }
+@media (prefers-reduced-motion: reduce) { .bot, .bot-btn, .bot-btn::after { animation: none !important; } }
+
+
+/* EVEN MORE PROMINENT: a much bigger face in the corner, a bigger speech bubble, and a soft glow that keeps breathing the whole time (not only while she has something to say).
+   Change --maya-size to make her smaller or bigger (the bubble and the messages box follow it). */
+.bot { --maya-size: 128px; left: 28px; bottom: 28px; }
+.bot-btn { width: var(--maya-size); height: var(--maya-size); border-width: 3px; box-shadow: 0 0 0 6px rgba(255, 0, 0, .18), 0 10px 34px rgba(255, 0, 0, .45); animation: mayaBreath 3.4s ease-in-out infinite; }
+.bot-dot { width: 30px; height: 30px; top: 0; right: 0; border-width: 3px; }
+.bot-tip { left: calc(var(--maya-size) + 18px); bottom: calc(var(--maya-size) / 2 - 20px); width: 330px; padding: 16px 20px; font-size: 18px; line-height: 1.4; border-width: 2px; box-shadow: 0 8px 28px rgba(255, 0, 0, .3); }
+.bot-tip::before { bottom: 22px; left: -9px; width: 14px; height: 14px; border-width: 2px; }
+.phone { bottom: calc(var(--maya-size) + 16px); width: min(360px, calc(100vw - 56px)); height: min(520px, calc(100vh - var(--maya-size) - 60px)); }
+.phone-head { font-size: 18px; padding: 12px 14px; }
+.phone-head .ibbi-face { width: 44px; height: 44px; }
+.phone-log { font-size: 14px; }
+.phone-opts button { font-size: 13px; padding: 9px 12px; }
+@keyframes mayaBreath { 0%, 100% { box-shadow: 0 0 0 6px rgba(255, 0, 0, .14), 0 10px 30px rgba(255, 0, 0, .35); } 50% { box-shadow: 0 0 0 12px rgba(255, 0, 0, .22), 0 12px 44px rgba(255, 0, 0, .6); } }
+@media (max-width: 600px) { .bot { --maya-size: 92px; left: 14px; bottom: 14px; } .bot-tip { width: min(260px, calc(100vw - 150px)); font-size: 16px; } }
+@media (prefers-reduced-motion: reduce) { .bot-btn { animation: none !important; } }
+
+/* Maya's words next to the cursor (js/assistant.js): "..." while she is quiet, her line while she talks; redder and shakier as she gets more suspicious */
+.maya-cur { position: fixed; left: 0; top: 0; z-index: 57; max-width: min(300px, 70vw); pointer-events: none; will-change: transform; font: 400 15px/1.35 var(--data, monospace); color: var(--red); }
+.maya-cur[hidden] { display: none; }
+.maya-cur:not(.talk) { font-size: 13px; letter-spacing: .1em; line-height: 1; text-shadow: 0 0 6px #fff, 0 0 2px #fff; }
+.maya-cur.talk { padding: 9px 13px; background: #fff; border: 1.5px solid var(--red); box-shadow: 0 6px 22px rgba(255, 0, 0, .28); }
+.maya-cur.edgy.talk { background: var(--red); color: #fff; border-color: #fff; animation: mayaCurShake .18s steps(2) infinite; }
+.maya-cur.edgy:not(.talk) { color: #fff; text-shadow: 0 0 6px #f00, 0 0 3px #f00; }
+@keyframes mayaCurShake { 0% { margin: 0 0 0 0; } 50% { margin: 1px 0 0 -1px; } 100% { margin: -1px 1px 0 0; } }
+@media (prefers-reduced-motion: reduce) { .maya-cur.edgy.talk { animation: none; } }

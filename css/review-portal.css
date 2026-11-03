@@ -1,0 +1,238 @@
+/* =====================================================
+   review-portal.css : review.html, "Make a Review" on an old computer (the look of the old authentication portal),
+   with every window drawn on your frame picture (images/review-frame.png).
+   The frame pieces (.ct-frame, .ct-body, .ct-title, .ct-x) come from certs.css. Sizes inside the window are shares of its width (cqw), so it scales.
+   ===================================================== */
+:root {
+  --desk: #050505;
+  --grey: #c0c0c0;
+  --hi: #fff;
+  --mid: #808080;
+  --lo: #404040;
+  --screen: #141a1d;           /* the dark slate behind the shirt */
+  --red: #ef1111;
+  --pix: "Silkscreen", "VT323", monospace;
+  --txt: "VT323", "Courier New", monospace;
+  --mono: "Intel One Mono", "VT323", monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body.rp { height: 100%; margin: 0; }
+body.rp { overflow: hidden; background: var(--desk); color: #000; font: 20px/1.15 var(--txt); transition: background 1.6s ease; }
+body.rp.dark { --desk: #000; --screen: #000; }
+
+/* the desk: a dithered pattern, and it switches on like a screen */
+.desk { position: relative; height: calc(100% - 34px); display: grid; place-items: center; padding: 8px; overflow: hidden;
+        background-image: repeating-conic-gradient(rgba(0,0,0,.06) 0 25%, transparent 0 50%); background-size: 4px 4px; animation: rpOn .8s ease-out both; }
+@keyframes rpOn { 0% { transform: scaleY(.004); filter: brightness(6); } 60% { transform: scaleY(1); filter: brightness(2); } 100% { transform: none; filter: none; } }
+.ghost { position: absolute; inset: -20%; color: rgba(0,0,0,.05); font: 700 70px/1.5 var(--pix); word-break: break-all; overflow: hidden; pointer-events: none; animation: rpDrift 90s linear infinite; }
+.ghost::before { content: "IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE IM THE REAL ONE "; }
+@keyframes rpDrift { to { transform: translate(-6%, -6%); } }
+
+/* the taskbar */
+.taskbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; height: 34px; display: flex; align-items: center; gap: 6px; padding: 3px 4px 3px 120px;   /* the left is left free for Maya's button */
+           background: var(--grey); border-top: 2px solid var(--hi); box-shadow: 0 -1px 0 var(--mid); }
+.start, .task, .tray { height: 26px; display: flex; align-items: center; padding: 0 10px; font-size: 18px; }
+.start { font-weight: 700; border: 2px solid; border-color: var(--hi) var(--lo) var(--lo) var(--hi); }
+.start b { margin-right: 6px; color: var(--red); font-size: 14px; }
+.task { min-width: 170px; border: 2px solid; border-color: var(--lo) var(--hi) var(--hi) var(--lo); background: repeating-conic-gradient(#fff 0 25%, var(--grey) 0 50%) 0 0 / 2px 2px; }
+.tray { margin-left: auto; border: 1px solid; border-color: var(--mid) var(--hi) var(--hi) var(--mid); }
+
+/* the old screen over everything */
+.scan, .vig { position: fixed; inset: 0; pointer-events: none; }
+.scan { z-index: 91; background: repeating-linear-gradient(0deg, rgba(0,0,0,.2) 0 1px, transparent 1px 3px); }
+.vig { z-index: 93; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%); }
+
+/* ---------- the windows (your frame picture) ---------- */
+.rp-win { position: relative; z-index: 2; container-type: inline-size; aspect-ratio: 1412 / 945;
+          width: min(1160px, calc(100vw - 16px), calc((100vh - 60px) * 1412 / 945));
+          filter: drop-shadow(6px 8px 0 rgba(0, 0, 0, .4)); animation: rpIn .3s steps(5, end) both; }
+@keyframes rpIn { from { opacity: 0; transform: scale(.96); } }
+.rp-win .ct-body { display: block; background: #fff; font-family: var(--txt); }
+.rp-win .ct-title { font-size: 2.1cqw; padding-left: 1cqw; }
+
+/* the buttons */
+.rp-btn { min-width: 11cqw; padding: .5cqw 2.2cqw; background: var(--grey); color: #000; border: 2px solid; border-color: var(--hi) var(--lo) var(--lo) var(--hi); box-shadow: inset -1px -1px 0 var(--mid);
+          font: 2.5cqw/1.1 var(--txt); text-align: center; cursor: pointer; }
+.rp-btn:hover:not(:disabled), .rp-btn:focus-visible { background: var(--red); color: #fff; outline: none; }
+.rp-btn:active:not(:disabled) { border-color: var(--lo) var(--hi) var(--hi) var(--lo); box-shadow: inset 1px 1px 0 var(--mid); }
+.rp-btn:disabled { color: var(--mid); text-shadow: 1px 1px 0 #fff; cursor: default; }
+.rp-btn.def { outline: 1px solid #000; outline-offset: 1px; }
+
+/* ---------- 1. the start window (PLACEHOLDER: replace with your design) ---------- */
+.rp-start { display: flex !important; flex-direction: column; align-items: center; justify-content: center; gap: 1.6cqw; padding: 3cqw; text-align: center; }
+.rp-start h1 { margin: 0; font: 400 5cqw/1.1 var(--txt); }
+.rp-start p { margin: 0; font: 400 2.8cqw/1.3 var(--txt); }
+.rp-start .small { color: #555; font-size: 2.3cqw; }
+.rp-start .rp-btn { margin-top: 1.6cqw; }
+
+/* ---------- 2. the review window ---------- */
+.rp-body { overflow: hidden; }
+.rp-stage { position: absolute; left: 0; right: 0; top: 0; height: 66%; background: var(--screen); border-bottom: 2px solid var(--lo); transition: background 1.6s; overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); }
+.rp-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* the red vignette: --vig (0-1) is set by js/review-portal.js (it starts at question 9 and grows). Change the .3 (middle glow) and .55 (edges) to make it weaker / stronger. */
+@property --vig { syntax: '<number>'; inherits: true; initial-value: 0; }
+.rp-stage { transition: --vig 1.4s ease, background 1.6s; }
+.rp-stage::after { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(255,0,0,calc(var(--vig, 0) * .3)) 0, transparent 62%),
+              radial-gradient(ellipse at center, transparent 38%, rgba(190,0,0,calc(var(--vig, 0) * .55)) 100%); }
+.rp-cap { position: absolute; left: 0; right: 0; bottom: 1.4cqw; margin: 0; text-align: center; color: #c8c8c8; font: 2.3cqw/1.2 var(--txt); text-shadow: 0 0 6px #000; pointer-events: none; }
+
+.rp-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 34%; padding: 1.2cqw 2.4cqw 1.2cqw; background: #000; color: #c8c8c8; display: flex; flex-direction: column; gap: .5cqw; }
+.rp-top { display: flex; justify-content: space-between; align-items: center; gap: 2cqw; }
+.rp-label { font: 400 1.9cqw/1 var(--pix); color: #7a7a7a; letter-spacing: .06em; text-transform: uppercase; }
+.rp-dots { display: flex; gap: .35cqw; flex-wrap: wrap; justify-content: flex-end; }
+.rp-dots i { width: .9cqw; height: .9cqw; background: #c8c8c8; }
+.rp-dots i.bad { background: var(--red); }
+.rp-q { margin: 0; min-height: 5.4cqw; font: 400 2.7cqw/1.2 var(--txt); color: #e8e8e8; }
+.rp-q::before { content: "> "; color: #7a7a7a; }
+.rp-q.typing::after, .rp-s.typing::after, .rp-q span.typing::after, .rp-pct.typing::after { content: ""; display: inline-block; width: .5em; height: .85em; margin-left: .1em; vertical-align: -.05em; background: currentColor; animation: rpBlink 1s steps(1) infinite; }
+@keyframes rpBlink { 50% { opacity: 0; } }
+.rp-row { display: flex; align-items: center; gap: 2.4cqw; min-height: 5cqw; }
+.rp-a { display: flex; gap: 1.6cqw; align-items: center; flex: none; }
+.rp-a .rp-btn { min-width: 10cqw; }
+.rp-star { padding: 0 .3cqw; font: 400 4.6cqw/1 var(--txt); background: none; border: 0; color: #555; cursor: pointer; }
+.rp-star.on { color: var(--red); }
+.rp-star:disabled { cursor: default; }
+.rp-s { margin: 0; flex: 1; font: 400 2.5cqw/1.2 var(--txt); color: #9a9a9a; }
+.rp-s.good { color: #9a9a9a; } .rp-s.tier1 { color: #d86; } .rp-s.tier2 { color: #f55; } .rp-s.tier3 { color: #f22; } .rp-s.tier4 { color: #f00; text-transform: uppercase; letter-spacing: .04em; }
+.rp-end { margin: 0; font: 400 4cqw/1.2 var(--txt); color: #fff; }
+.rp-win.hit { animation: rpHit .35s steps(6, end); }
+@keyframes rpHit { 0%, 100% { transform: none; } 20% { transform: translate(-6px, 2px); } 40% { transform: translate(6px, -2px); } 60% { transform: translate(-4px, 1px); } 80% { transform: translate(4px, 0); } }
+
+@media (prefers-reduced-motion: reduce) { .desk, .rp-win, .ghost { animation: none; } }
+
+/* the flat shirt picture, if the 3D can't load */
+.rp-flat { position: absolute; left: 50%; top: 46%; height: 80%; transform: translate(-50%, -50%); animation: rpFloat 3.2s ease-in-out infinite; }
+@keyframes rpFloat { 50% { transform: translate(-50%, -52%); } }
+
+
+/* ---------- 1. the start window: your picture (images/review-start.png) with a real text box and invisible buttons over it ----------
+   All the positions are shares of the picture (748 x 520), so they follow it when it scales. If something is a few pixels off, nudge it here. */
+.rp-startwin { aspect-ratio: 748 / 520; width: min(820px, 58vw, calc((100vh - 60px) * 748 / 520)); min-width: min(560px, calc(100vw - 16px)); }
+.rs-img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; pointer-events: none; -webkit-user-drag: none; }
+.rs-in { position: absolute; left: 27.9%; top: 43.9%; width: 68.8%; height: 8.3%; padding: 0 2%; border: 0; border-radius: 0; background: #fff; color: #000; font: 400 2.6cqw/1 var(--mono); outline: none; }
+.rs-in:focus { box-shadow: inset 0 0 0 2px #7a0000; }
+.rs-in.nope { animation: rpHit .35s steps(6, end); }
+.rs-status { position: absolute; left: 1.8%; top: 94.3%; width: 40%; height: 3.8%; margin: 0; padding-left: .5%; display: flex; align-items: center; background: #c0c0c0; color: #000; font: 400 1.9cqw/1 var(--mono); white-space: nowrap; overflow: hidden; }
+.rs-hit { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.rs-hit:focus-visible { outline: 2px solid #7a0000; }
+.rs-begin  { left: 58.2%; top: 82%; width: 20.6%; height: 7.2%; }
+.rs-cancel { left: 80%;   top: 82%; width: 16.8%; height: 7.2%; }
+.rs-x      { left: 96%; top: 1.4%; width: 2.6%; height: 3.4%; }
+
+
+/* ---------- the moving background: videos/review-bg.mp4 (yours). It sits behind the desk; without the file the old desk colour stays ---------- */
+.bgvid { position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.2s ease; pointer-events: none; }
+.bgvid.on { opacity: 1; }
+body.rp.has-bg .desk { background: transparent; }
+body.rp.has-bg .ghost { display: none; }
+body.rp.has-bg.dark .bgvid { opacity: 0; }
+
+/* the start screen is just the window on the static: no taskbar, no teal. The taskbar arrives with the review. */
+body.rp:not(.started) .taskbar, body.rp:not(.started) .ghost { display: none; }
+body.rp:not(.started) .desk { height: 100%; background-image: none; }
+
+/* the flashing cursor of an empty box: it waits for them to type (it disappears as soon as there is a letter) */
+.rs-in::placeholder { color: transparent; }
+.rs-in:placeholder-shown { caret-color: transparent; }
+.rs-caret { position: absolute; left: 29.6%; top: 45.5%; width: .9%; height: 5.2%; background: #000; pointer-events: none; animation: rsBlink 1s steps(1) infinite; }
+.rs-in:not(:placeholder-shown) + .rs-caret { display: none; }
+@keyframes rsBlink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .rs-caret { animation: none; } }
+
+/* ---------- the confidence screen: the black pane on the left (result, message, buttons), the shirt on the right ---------- */
+.rp-stage.side { left: 58%; height: 100%; border-bottom: 0; border-left: 2px solid var(--lo); }
+.rp-bar.score { top: 0; right: auto; width: 58%; height: 100%; padding: 3.2cqw 4cqw 3.4cqw; gap: 0; }
+.rp-bar.score .rp-q { margin-top: 1.6cqw; min-height: 0; font-size: 2.9cqw; line-height: 1.15; color: #fff; }
+.rp-bar.score .rp-q::before { content: ""; }
+.rp-q .rp-pct { display: block; width: max-content; min-width: 7cqw; margin-top: .5cqw; font-size: 4.6cqw; line-height: 1.05; font-weight: 400; border-bottom: .35cqw solid #fff; }
+.rp-bar.score .rp-row { flex-direction: column-reverse; align-items: flex-start; gap: 2cqw; min-height: 0; margin-top: auto; }
+.rp-bar.score .rp-s { flex: none; font-size: 2cqw; line-height: 1.3; min-height: 5.4cqw; max-width: 74%; }
+.rp-bar.score .rp-a { gap: 1.6cqw; }
+.rp-bar.score .rp-a .rp-btn { min-width: 14.6cqw; padding: .6cqw 1cqw; font-size: 2.1cqw; }
+
+/* the creeping text (js/review-portal.js): chunks of three lines over the whole screen. The lines fade in one row at a time. */
+.rp-creep { position: fixed; inset: 0; z-index: 50; pointer-events: none; transition: opacity 1.4s ease; }
+.rp-creep-chunk { position: absolute; color: #fff; font-family: var(--pix); font-weight: 700; line-height: 1.2; letter-spacing: .02em; white-space: nowrap; text-shadow: 0 0 .5em rgba(255, 255, 255, .25); }
+.rp-creep-chunk span { display: block; opacity: 0; transition: opacity 1.2s ease; }
+.rp-creep-chunk span.on { opacity: .92; animation: rpCreepFlick 5s steps(1) infinite; }
+@keyframes rpCreepFlick { 0%, 93%, 100% { opacity: .92; } 95% { opacity: .55; } 97% { opacity: .92; } }
+@media (prefers-reduced-motion: reduce) { .rp-creep-chunk span { transition: none; animation: none !important; } }
+
+/* ---------- the last check: "select all images that are real" (built by js/review-portal.js) ---------- */
+.cp-layer { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 12px; background: rgba(0, 0, 0, .55); animation: cpIn .9s ease both; font-family: Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+@keyframes cpIn { from { opacity: 0; } }
+.cp { position: relative; z-index: 1; width: min(350px, 100%); max-height: 100%; overflow: auto; background: #fff; border: 1px solid #d3d3d3; box-shadow: 0 8px 40px rgba(0, 0, 0, .6); color: #222; }
+.cp.nope { animation: rpHit .35s steps(6, end); }
+.cp-head { margin: 12px 12px 8px; padding: 22px 20px 20px; background: #4a90e2; color: #fff; }
+.cp-head span { display: block; font-size: 17px; line-height: 1.3; }
+.cp-head b { text-transform: none; }
+.cp-head b { display: block; margin-top: 2px; font-size: 38px; line-height: 1.1; font-weight: 700; }
+.cp-shirt { margin: 0 12px; background: #1b2126; }                                  /* the dark behind the shirt (so the plain white shirt can be seen) */
+.cp-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; aspect-ratio: 307 / 321;
+           clip-path: polygon(76.2% 5.3%, 63.2% 1.9%, 60.3% 0%, 52.4% 1.2%, 39.1% 0.3%, 36.8% 1.9%, 24.4% 5%, 21.2% 6.9%, 14.7% 13.7%, 0% 33.3%, 0% 34.3%, 12.4% 43.6%, 17.9% 46.4%, 21.8% 46.1%, 21.5% 70.4%, 23.5% 98.4%, 36.5% 99.7%, 49.2% 98.1%, 62.5% 99.4%, 70% 99.4%, 76.5% 98.1%, 78.2% 75.4%, 78.2% 46.4%, 82.1% 46.1%, 86% 44.2%, 99.3% 34.3%, 99.7% 33%, 86% 14.6%, 80.1% 8.1%); }   /* the pictures are cut to the shape of your t-shirt */
+.cp-tile { position: relative; min-height: 0; padding: 0; border: 0; background: #ddd; cursor: pointer; overflow: hidden; }
+.cp-tile span { position: absolute; inset: 0; background-repeat: no-repeat; }
+.cp-tile.flip span { animation: cpFlip .22s ease; }
+@keyframes cpFlip { 0% { transform: scale(.8); filter: brightness(1.8); } 100% { transform: none; filter: none; } }
+.cp-tile:focus-visible { outline: 3px solid #4a90e2; outline-offset: -3px; }
+.cp-foot { display: flex; align-items: center; gap: 18px; margin: 10px 12px 6px; padding-top: 10px; border-top: 1px solid #ddd; }
+.cp-ic { width: 26px; height: 26px; display: block; }
+.cp-ic svg { width: 100%; height: 100%; fill: #555; }
+.cp-verify { margin-left: auto; padding: 14px 34px; background: #4a90e2; color: #fff; border: 0; font: 700 17px/1 Roboto, system-ui, sans-serif; letter-spacing: .02em; cursor: pointer; }
+.cp-verify:hover:not(:disabled) { background: #3b7fcf; }
+.cp-verify:disabled { opacity: .6; cursor: default; }
+.cp-msg { min-height: 20px; margin: 0 12px 10px; color: #c00; font-size: 13px; }
+.cp-layer.ok .cp { box-shadow: 0 0 0 3px #2e9e4f; }
+.cp-layer.bad .cp { box-shadow: 0 0 0 3px #d00; animation: rpHit .35s steps(6, end); }
+
+/* ---------- the writing page (review-write.html): the same window, with a space to type ---------- */
+.rw-body { padding: 3cqw 4cqw 2.4cqw; display: flex !important; flex-direction: column; gap: 1.2cqw; }
+.rw-h { margin: 0; font: 400 4.4cqw/1.1 var(--txt); }
+.rw-p { margin: 0; font: 400 2.5cqw/1.3 var(--txt); color: #333; }
+.rw-area { flex: 1; min-height: 0; width: 100%; resize: none; padding: 1.4cqw 1.8cqw; border: 2px solid; border-color: #404040 #fff #fff #404040; background: #fff; color: #000; font: 400 2.5cqw/1.35 var(--mono); outline: none; }
+.rw-area:focus { box-shadow: inset 0 0 0 2px #7a0000; }
+.rw-row { display: flex; align-items: center; gap: 2cqw; min-height: 5.4cqw; }
+.rw-status { margin: 0; flex: 1; font: 400 2.3cqw/1.2 var(--txt); color: #7a0000; }
+.rw-row .rp-btn { font-size: 2.6cqw; min-width: 14cqw; }
+.rw-row .rp-btn.blocked { background: #7a0000; color: #fff; }
+.rw-area.nope, .rw-row .rp-btn.nope { animation: rpHit .35s steps(6, end); }
+
+/* the red eye behind the shirt (the "are you alone" question): the same eye as the eye screen, just very faint */
+.rp-eye { position: absolute; inset: 0; z-index: 0; container-type: size; overflow: hidden; background: #ff0a0a; opacity: 0; transition: opacity 1.6s ease; pointer-events: none; }
+.rp-eye.on { opacity: var(--eye-glow, .3); }                    /* how strong it is: change .3 (0 = gone, 1 = full red screen) */
+.rp-eye-wrap { position: absolute; left: 50%; top: 50%; width: max(100cqw, 143.98cqh); aspect-ratio: 1555 / 1080; transform: translate(-50%, -50%); }
+.rp-eye-wrap img { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; -webkit-user-drag: none; }
+.rp-eye-white { filter: url(#eyeKnock); }
+.rp-eye-pupil { transform-origin: 44% 56%; will-change: transform; }
+.rp-stage canvas { z-index: 1; }
+
+/* the red vignette that creeps in over the screen when the last check appears: it starts invisible and closes in over a few seconds, then breathes */
+.cp-vig { position: fixed; inset: 0; z-index: 0; pointer-events: none; transform-origin: center;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(120, 0, 0, .55) 62%, rgba(185, 0, 0, .95) 100%);
+  box-shadow: inset 0 0 14vmin 2vmin rgba(255, 0, 0, .55); opacity: 0;
+  animation: cpCreep 7s cubic-bezier(.25, 0, .2, 1) .3s forwards, cpBreathe 2.8s ease-in-out 7.3s infinite alternate; }
+@keyframes cpCreep { from { opacity: 0; transform: scale(1.8); } to { opacity: 1; transform: scale(1); } }
+@keyframes cpBreathe { from { opacity: 1; } to { opacity: .78; } }
+@media (prefers-reduced-motion: reduce) { .cp-vig { animation: none; opacity: 1; } }
+
+/* the erased screen: plain red, white typing (js/review-portal.js erased()) */
+.rp-red { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; background: #f00; color: #fff; transition: background .05s; }
+.rp-red.black { background: #000; } .rp-red.black .rp-red-t { visibility: hidden; }
+.rp-red-t { width: min(900px, 86vw); font: 400 clamp(22px, 3.4vw, 46px)/1.5 var(--txt); }
+.rp-red-t p { margin: 0 0 .5em; min-height: 1.5em; }
+.rp-red-t p.typing::after { content: ""; display: inline-block; width: .5em; height: .85em; margin-left: .1em; vertical-align: -.05em; background: #fff; animation: rpBlink 1s steps(1) infinite; }
+
+/* "Just one final check..." typed over the review window's title bar while the last check is open */
+.cp-final { position: fixed; z-index: 2; display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--pix); font-weight: 700; letter-spacing: .04em; line-height: 1; white-space: nowrap; pointer-events: none; text-shadow: 0 0 .4em rgba(255, 255, 255, .35); }
+
+/* the wrong picture: YOU'RE WRONG flashes across the whole screen, then a softer "...try again" (js/review-portal.js wrongPicture) */
+.rp-wrong { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.82); transition: opacity .7s ease; }
+.rp-wrong.out { opacity: 0; }
+.rp-wrong b { max-width: 88vw; line-height: 1.25; font-family: var(--pix); font-weight: 700; font-size: clamp(40px, 11vw, 190px); letter-spacing: .02em; color: var(--red); text-align: center; text-shadow: 0 0 24px rgba(239,17,17,.7); animation: rpWrongFlash .26s steps(1) 5; }
+.rp-wrong b.soft { font-weight: 400; font-size: clamp(22px, 3.4vw, 54px); letter-spacing: .06em; color: #cfcfcf; text-shadow: none; animation: rpWrongSoft 1.4s ease both; }
+@keyframes rpWrongFlash { 0%, 100% { opacity: 1; } 50% { opacity: .08; } }
+@keyframes rpWrongSoft { from { opacity: 0; } to { opacity: .9; } }
+@media (prefers-reduced-motion: reduce) { .rp-wrong b { animation: none; } }

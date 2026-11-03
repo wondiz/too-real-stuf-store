@@ -1,0 +1,763 @@
+/* =====================================================
+   mainpage.css : the whole page, built from your Figma, plus the creepy
+   effects (vignette, ghost cursor, "authenticated" popups).
+   The welcome popup has its own file: welcome.css
+   ===================================================== */
+
+/* =====================================================
+   TOKENS (from Figma)
+   ===================================================== */
+:root {
+  --red: #ff0000;
+  --grey: #d9d9d9;
+  --line: #5b5b5b;
+  --code: #bebebe;
+  --scrollgrey: #4f4f4f;
+  --serif: 'Inria Serif','High Tower Text',Georgia,serif;
+  --mono: 'Intel One Mono',ui-monospace,monospace;
+  --data: 'Datatype','Intel One Mono',ui-monospace,monospace;
+  --dread: 0;  /* 0 → 1, rises the longer someone stays */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #fff;
+  color: #000;
+  font-family: var(--serif);
+  overflow-x: hidden;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  -webkit-user-drag: none;        /* photos can't be dragged off the page (mainpage.js covers Firefox) */
+  user-select: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+/* =====================================================
+   ANNOUNCEMENT + NAV
+   ===================================================== */
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.announce {
+  height: 40px;
+  background: var(--grey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 400 16px var(--data);
+  color: var(--red);
+  position: relative;
+  padding: 0 40px;
+  text-align: center;
+}
+
+.announce .x {
+  position: absolute;
+  right: 30px;
+  top: 13px;
+  width: 13px;
+  height: 13px;
+}
+
+.nav {
+  height: 61px;
+  background: #fff;
+  border-bottom: .5px solid #000;
+  display: flex;
+  align-items: center;
+  padding: 0 19px;
+}
+
+.nav .logo {
+  width: 180px;
+  height: 54px;
+  object-fit: cover;
+}
+
+.nav ul {
+  display: flex;
+  gap: 64px;
+  list-style: none;
+  font-size: 20px;
+  margin-left: calc(358px - 199px);
+}
+
+.nav li.sale {
+  color: var(--red);
+}
+
+.icons {
+  margin-left: auto;
+  display: flex;
+  gap: 30px;
+  align-items: center;
+  padding-right: 5px;
+}
+
+.icons img {
+  height: 32px;
+  width: auto;
+}
+
+/* =====================================================
+   HERO
+   ===================================================== */
+.hero {
+  position: relative;
+  height: 600px;
+  color: #fff;
+  overflow: hidden;
+  background: #000;
+}
+
+.hero img.bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 18%;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+}
+
+.hero .copy {
+  position: absolute;
+  z-index: 2;
+  left: 51px;
+  top: 227px;
+}
+
+.hero h1 {
+  font: 400 64px/1.15 'High Tower Text','Inria Serif',Georgia,serif;
+}
+
+.hero p {
+  font: 400 32px/1.2 var(--serif);
+}
+
+.hero .btn {
+  position: absolute;
+  z-index: 2;
+  left: 59px;
+  bottom: -52px;
+  top: 490px;
+  width: 186px;
+  height: 52px;
+  background: #fff;
+  color: #000;
+  display: grid;
+  place-items: center;
+  font: 400 20px var(--data);
+}
+
+/* =====================================================
+   BESTSELLERS
+   ===================================================== */
+.best {
+  position: relative;
+  padding-top: 47px;
+}
+
+.best h2 {
+  font: 400 32px var(--serif);
+  text-align: center;
+}
+
+.cards {
+  display: flex;
+  overflow-x: auto;
+  padding: 50px 0 0;
+  scrollbar-width: none;
+  margin-top: 0;
+}
+
+.cards::-webkit-scrollbar {
+  display: none;
+}
+
+.card {
+  position: relative;
+  flex: 0 0 333px;
+  height: 423px;
+  margin-right: -24px;
+  cursor: pointer;
+}
+
+.card .box {
+  position: absolute;
+  inset: 0 6.91% 0 7.21%;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+/* Photo sits INSIDE the bordered box (same side insets as .box),
+   so neighbouring cards no longer overlap and join up into one band. */
+.card .pic {
+  position: absolute;
+  left: 7.21%;
+  right: 6.91%;
+  top: 30px;
+  height: 370px;
+  overflow: hidden;
+  /* box-shadow: 3px 4px 8px rgba(0,0,0,.25);  <- this drew the long lines; uncomment to bring it back */
+}
+
+.card .pic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 40%;
+  /* scale = shirt size (1 = original, bigger = larger shirt)
+     translateY = how far up it sits (more negative = higher). Keep it no more
+     negative than -44px or a thin gap shows under the photo. */
+  transform: translateY(-40px) scale(1.2);
+  transform-origin: 50% 40%;
+}
+
+/* HOVER STATE (Figma "Variant2"): the shirt photo dissolves into a person
+   wearing it, darkened 50%, with "click to view" centred on top. */
+.card .pic {
+  transition: opacity .55s ease, filter .55s ease;
+}
+
+.card .hover {
+  position: absolute;
+  left: 7.21%;
+  right: 7.21%;
+  top: 60px;
+  aspect-ratio: 285/264;
+  overflow: hidden;
+  box-shadow: 3px 4px 8px rgba(0,0,0,.25);
+  opacity: 0;
+  filter: blur(3px);
+  transition: opacity .55s ease, filter .55s ease;
+  pointer-events: none;
+}
+
+.card .hover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card .hover::after {          /* the 50% dark overlay */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+}
+
+.card .hover span {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font: 500 22px var(--data);
+}
+
+.card:hover .pic,
+.card:focus-within .pic,
+.card.ghosted .pic {
+  opacity: 0;
+  filter: blur(3px);
+}
+
+.card:hover .hover,
+.card:focus-within .hover,
+.card.ghosted .hover {
+  opacity: 1;
+  filter: none;
+}
+
+.card .heart {
+  position: absolute;
+  right: 13.5%;
+  top: 15px;
+  width: 27px;
+  height: 33px;
+}
+
+.card .heart.on svg path {
+  fill: var(--red);
+  stroke: var(--red);
+}
+
+.card .name {
+  position: absolute;
+  left: 12.6%;
+  top: 81.3%;
+  font: 400 22px var(--data);
+  white-space: nowrap;
+}
+
+.card .price {
+  position: absolute;
+  left: 12.6%;
+  top: 89.1%;
+  font: 200 24px var(--data);
+  color: var(--red);
+}
+
+.card .code {
+  position: absolute;
+  right: 11%;
+  top: 89.1%;
+  font: 400 24px var(--data);
+  color: var(--code);
+}
+
+.scrollhint {
+  font: 400 20px var(--mono);
+  color: var(--scrollgrey);
+  text-align: right;
+  padding: 22px 77px 0 0;
+  height: 75px;
+  display: block;
+  width: 100%;
+  cursor: pointer;
+}
+
+.scrollhint:hover,
+.scrollhint:focus-visible {
+  color: #000;
+}
+
+/* =====================================================
+   PHOTO STRIP
+   ===================================================== */
+.strip {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  height: min(808px,125vw);
+}
+
+.strip::-webkit-scrollbar {
+  display: none;
+}
+
+.strip img {
+  flex: 0 0 min(641px,50vw);
+  height: 100%;
+  object-fit: cover;
+}
+
+/* =====================================================
+   AUTHENTICATED + FOOTER
+   ===================================================== */
+.auth {
+  background: var(--grey);
+  height: 437px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth .tag {
+  position: absolute;
+  left: 105px;
+  top: 96px;
+  width: 193px;
+  height: 251px;
+  background: #ebebeb;
+  display: grid;
+  place-items: center;
+}
+
+/* the visitor's photo, added by welcome.js once they've been "authenticated" */
+.auth .tag img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);          /* mirrored, like it was in the eye */
+  /* filter: grayscale(.6) contrast(1.2);   <- un-comment for a colder, creepier photo */
+}
+
+.auth .stamp {
+  position: absolute;
+  left: 44px;
+  top: 213px;
+  width: 331px;
+  height: 143px;
+  object-fit: cover;
+  transform: rotate(2.94deg);
+  transform-origin: center;
+}
+
+.auth .stamp.pre {
+  opacity: 0;
+  transform: rotate(-6deg) scale(1.7);
+}
+
+.auth .stamp.hit {
+  transition: transform .22s cubic-bezier(.2,1.6,.4,1),opacity .08s;
+  opacity: 1;
+  transform: rotate(2.94deg) scale(1);
+}
+
+.auth .txt {
+  position: absolute;
+  left: 419px;
+  top: 96px;
+  right: 40px;
+}
+
+.auth h3 {
+  font: 700 32px var(--serif);
+}
+
+.auth .m {
+  font: 300 24px/1.2 var(--mono);
+  margin-top: 22px;
+  max-width: 742px;
+}
+
+.auth .m + .m {
+  margin-top: 52px;
+  max-width: 547px;
+}
+
+.red {
+  color: var(--red);
+}
+
+footer {
+  background: #fff;
+  position: relative;
+  height: 291px;
+}
+
+footer .brand {
+  position: absolute;
+  left: 24px;
+  top: 27px;
+  width: 287px;
+  height: 87px;
+  object-fit: cover;
+}
+
+footer .tagline {
+  position: absolute;
+  left: 37px;
+  top: 129px;
+  width: 401px;
+  font: 300 16px/1.3 var(--mono);
+}
+
+/* Help / Services / Legal: three equal-width columns, so the headings are
+   evenly spaced, tucked into the bottom-right corner of the footer.
+   Column width = --col-w (widest link is about 171px at this font size). */
+footer .cols {
+  --col-w: 190px;
+  position: absolute;
+  right: 40px;
+  top: 80px;                     /* centred against the left side (logo at the top, social icons at the bottom). Higher number = lower on the page */
+  display: grid;
+  grid-template-columns: repeat(3, var(--col-w));
+  align-items: start;
+  font: 300 15px/18px var(--mono);
+}
+
+footer .cols h4 {
+  font: 400 16px var(--mono);
+  margin-bottom: 34px;
+}
+
+footer .cols a {
+  display: block;
+  margin-bottom: 18px;
+}
+
+footer .soc {
+  position: absolute;
+  left: 37px;
+  top: 351px;
+  display: flex;
+  gap: 25px;
+  align-items: center;
+  top: auto;
+  bottom: 18px;
+}
+
+footer .soc img {
+  width: 42px;
+  height: 42px;
+}
+
+@media (max-width:1100px) {
+  footer .cols {
+      --col-w: 158px;
+      font-size: 13px;
+    }
+}
+
+@media (max-width:900px) {
+  .nav ul {
+      display: none;
+    }
+
+  .hero .copy {
+      left: 24px;
+      top: 200px;
+    }
+
+  .hero h1 {
+      font-size: 44px;
+    }
+
+  .hero p {
+      font-size: 24px;
+    }
+
+  .hero .btn {
+      left: 24px;
+    }
+
+  .auth {
+      height: auto;
+      padding: 40px 24px 60px;
+    }
+
+  .auth .tag, .auth .stamp, .auth .txt {
+      position: relative;
+      left: auto;
+      top: auto;
+      right: auto;
+    }
+
+  .auth .tag {
+      margin-bottom: 24px;
+    }
+
+  .auth .stamp {
+      margin: -80px 0 24px -10px;
+      width: 260px;
+    }
+
+  .auth h3 {
+      font-size: 26px;
+    }
+
+  .auth .m {
+      font-size: 18px;
+    }
+
+  footer {
+      height: auto;
+      padding: 24px;
+    }
+
+  footer>* {
+      position: static!important;
+    }
+
+  footer .cols {
+      display: grid!important;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      margin: 24px 0;
+    }
+
+  footer .soc {
+      margin-top: 8px;
+    }
+
+  .scrollhint {
+      padding-right: 24px;
+    }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .card .pic, .card .hover {
+      transition: none;
+      filter: none;
+    }
+}
+
+/* the two icon strips you exported as single images */
+.icons img.retail {
+  height: 32px;
+  width: auto;
+}
+
+footer .soc img.socials {
+  height: 42px;
+  width: auto;
+}
+
+
+/* =====================================================
+   HORROR LAYER
+   ===================================================== */
+body::after {
+  /* Size of the clear (see-through) area around the cursor.
+     Smaller number = smaller clear area. Was 70% / 38%. */
+  --clear-start: 50%;   /* clear radius when the vignette first appears */
+  --clear-shrink: 28%;  /* how much the clear area shrinks by the time it is fully dark */
+
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  transition: opacity .6s ease;
+  background: radial-gradient(
+    ellipse at var(--mx, 50%) var(--my, 50%),
+    transparent calc(var(--clear-start) - var(--dread) * var(--clear-shrink)),
+    rgba(0, 0, 0, calc(var(--dread) * .55)) 100%
+  );
+}
+
+/* THE GHOST CURSOR: a second cursor that mirrors yours across the page.
+   Appears after you've been here a little while (see script section 7). */
+.ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  width: 18px;
+  height: 24px;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+  filter: drop-shadow(2px 0 var(--red)) drop-shadow(-2px 0 #0ff);
+}
+
+.ghost svg {
+  display: block;
+}
+
+/* Its click: an eye-shaped ripple that opens outward, a beat after yours.
+   Want a plain circle instead? Change border-radius to 50% and delete the
+   rotate(-45deg) from the keyframes. */
+.ghost-ring {
+  position: fixed;
+  z-index: 60;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 1px solid var(--red);
+  border-radius: 0 100% 0 100%;   /* two opposite corners round off = almond / eye shape */
+  pointer-events: none;
+  animation: ghostRing .8s ease-out forwards;
+}
+
+.ghost-ring::after {              /* the pupil */
+  content: "";
+  position: absolute;
+  inset: 28%;
+  border: 1px solid var(--red);
+  border-radius: 50%;
+}
+
+@keyframes ghostRing {
+  from {
+    transform: rotate(-45deg) scale(1);
+    opacity: .4;                 /* starting opacity: lower = fainter */
+  }
+  to {
+    transform: rotate(-45deg) scale(6);
+    opacity: 0;
+  }
+}
+
+/* =====================================================
+   SOCIAL-PROOF POPUPS  ("Maria authenticated her item...")
+   Built in script section 8. Starts bottom-left like a real store plugin.
+   ===================================================== */
+.toast {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 55;                    /* above the vignette (50), below the ghost cursor (60) */
+  width: 300px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  font: 400 14px/1.35 var(--data);
+  color: #000;
+  pointer-events: none;           /* never blocks clicks */
+  opacity: 0;
+  transform: translateX(-16px);
+  transition: opacity .35s ease, transform .35s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: none;
+}
+
+@media (max-width:900px) {
+  .toast {
+      width: calc(100vw - 24px);
+      left: 12px;
+      bottom: 12px;
+    }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .ghost, .ghost-ring {
+      display: none;
+    }
+
+  .toast {
+      transition: none;
+    }
+}
+
+/* the logo is a vector now: set its size here (these override the older logo rules above) */
+.nav .logo {
+  width: 180px !important;
+  height: 54px !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+}
+footer .brand {
+  width: 287px !important;
+  height: auto !important;
+  max-width: 100%;
+}
+
+
+/* the grey "Join the Real Stuf. Community" block above the footer */
+.join { padding: 130px 24px 150px; background: #d9d9d9; color: red; text-align: center; font-family: var(--data); }
+.join h2 { font: 400 48px/1.2 var(--data); }
+.join p { max-width: 960px; margin: 20px auto 0; font: 400 24px/1.9 var(--data); }
+.join button { width: 309px; height: 92px; margin-top: 50px; background: #fff; border: 1px solid red; color: red; font: 400 24px var(--data); cursor: pointer; }
+.join button:hover, .join button:focus-visible { background: red; color: #fff; outline: none; }

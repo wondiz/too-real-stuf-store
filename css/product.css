@@ -1,0 +1,256 @@
+/* =====================================================
+   product.css : only what is new on the product page.
+   The nav, cards and footer come from mainpage.css.
+   Built from the Figma "A Real T-shirt" frame.
+   ===================================================== */
+
+/* the photos on the left, the details on the right */
+
+.pdp {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 366px;
+  align-items: start;
+}
+
+/* =====================================================
+   PHOTOS  (2 columns x 3 rows, row heights from the Figma)
+   ===================================================== */
+
+.pdp-photos {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 567fr 601fr 588fr;
+  aspect-ratio: 914 / 1756;
+}
+
+.pdp-photos img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  min-height: 0;
+}
+
+/* =====================================================
+   DETAILS PANEL  (stays on screen while the photos scroll)
+   ===================================================== */
+
+.pdp-info {
+  position: sticky;
+  top: 101px;                      /* just under the sticky nav (40px bar + 61px nav) */
+  padding: 24px 24px 40px;
+  font-family: var(--data);
+  font-weight: 400;
+}
+
+.back {
+  display: block;
+  font-size: 15px;
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+
+.title {
+  margin-top: 25px;
+  font: 400 24px/1 var(--data);
+}
+
+.price {
+  margin-top: 11px;
+  font: 400 24px/1 var(--data);
+  color: var(--red);
+}
+
+.price span {
+  margin-left: 1em;
+  font-size: 15px;
+  color: #5b5b5b;
+}
+
+.swatch {
+  width: 40px;
+  height: 67px;
+  margin-top: 41px;
+  border: .5px solid var(--red);
+  overflow: hidden;
+}
+
+.swatch img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.colour {
+  margin-top: 8px;
+  font-size: 16px;
+  line-height: 26px;
+  color: #5b5b5b;
+}
+
+.colour b {
+  font-size: 20px;
+  font-weight: 700;
+  color: #000;
+}
+
+.size-btn,
+.restock {
+  display: block;
+  width: 315px;
+  max-width: 100%;
+  height: 45px;
+  font: 400 15px var(--data);
+}
+
+.size-btn {
+  margin-top: 17px;
+  background: #fff;
+  border: 1px solid #000;
+}
+
+.size-btn:hover {
+  background: #000;
+  color: #fff;
+}
+
+.restock {
+  margin-top: 5px;
+  background: var(--grey);
+  color: #6e6e6e;
+  cursor: not-allowed;
+}
+
+.sold,
+.worried {
+  font-size: 13px;
+  line-height: 20px;
+  color: #6e6e6e;
+}
+
+.sold {
+  margin-top: 8px;
+}
+
+/* DESCRIPTIONS / DETAILS / SHIPPING AND RETURNS */
+
+.acc {
+  width: 315px;
+  max-width: 100%;
+  margin-top: 8px;
+}
+
+.acc.first {
+  margin-top: 30px;
+}
+
+.acc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 35px;
+  border-bottom: .5px solid #000;
+  font: 200 13px var(--data);
+  text-align: left;
+}
+
+.acc-head svg {
+  width: 24px;
+  height: 24px;
+  transition: transform .25s ease;
+}
+
+.acc-head[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.acc-body {
+  max-height: 0;
+  overflow: hidden;
+  font: 400 13px/1.5 var(--data);
+  color: #6e6e6e;
+  transition: max-height .3s ease, padding .3s ease;
+}
+
+.acc-head[aria-expanded="true"] + .acc-body {
+  max-height: 140px;
+  padding: 10px 0 4px;
+}
+
+.worried {
+  margin-top: 41px;
+}
+
+.auth-slot {
+  height: 45px;                   /* keeps its space when the button runs off */
+  margin-top: 11px;
+}
+
+.auth-btn {
+  display: block;
+  width: 193px;
+  height: 45px;
+  background: var(--red);
+  border: 1px solid #fff;
+  color: #fff;
+  font: 400 15px var(--data);
+}
+
+.auth-btn:hover,
+.auth-btn:focus-visible {
+  background: #fff;
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* =====================================================
+   YOU MAY ALSO LIKE  (reuses the home page's cards)
+   ===================================================== */
+
+.best.more {
+  padding-top: 65px;
+}
+
+.best.more h2 {
+  text-align: left;
+  padding-left: 55px;
+}
+
+/* =====================================================
+   PHONES
+   ===================================================== */
+
+@media (max-width: 900px) {
+  .pdp {
+    grid-template-columns: 1fr;
+  }
+
+  .pdp-photos {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: none;
+    aspect-ratio: auto;
+  }
+
+  .pdp-photos img {
+    aspect-ratio: 4 / 5;
+    height: auto;
+  }
+
+  .pdp-info {
+    position: static;
+  }
+
+  .best.more h2 {
+    padding-left: 24px;
+  }
+}
+
+@media (max-width: 520px) {
+  .pdp-photos {
+    grid-template-columns: 1fr;
+  }
+}

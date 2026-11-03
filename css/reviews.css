@@ -1,0 +1,85 @@
+/* =====================================================
+   reviews.css : the old-computer review windows (built by js/reviews.js).
+   The window is your frame PNG (images/review-frame.png, 706 x 472, the 2x export). The review scrolls inside it.
+   If your real frame has a different layout, change the five numbers in :root (all in frame pixels).
+   ===================================================== */
+:root { --rv-w: 706px; --rv-h: 472px; --rv-x: 12px; --rv-y: 68px; --rv-cw: 661px; --rv-ch: 371px; --rv-sb: 21px; }   /* x, y, cw, ch = the white content area; sb = scrollbar width (it sits right of the content) */
+
+.rv-layer { position: fixed; inset: 0; z-index: 54; pointer-events: none; }                 /* under Maya (56) and the popup (58) */
+.rv-win { position: absolute; width: var(--rv-w); height: var(--rv-h); transform-origin: 0 0; pointer-events: auto; animation: rvIn .35s steps(5, end) both; user-select: none; }
+.rv-win.out { animation: rvOut .25s steps(4, end) forwards; }
+@keyframes rvIn { from { opacity: 0; } }
+@keyframes rvOut { to { opacity: 0; } }
+.rv-frame { position: absolute; inset: 0; width: 100%; height: 100%; -webkit-user-drag: none; image-rendering: pixelated; }
+
+.rv-body { position: absolute; left: var(--rv-x); top: var(--rv-y); width: var(--rv-cw); height: var(--rv-ch); overflow: hidden; background: #fff; }
+.rv-load { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; font: 400 18px var(--mono, monospace); color: #000; }
+.rv-load b { position: relative; width: 56px; height: 56px; }                              /* the pixel spinner: eight squares chasing each other round a ring */
+.rv-load i { position: absolute; width: 10px; height: 10px; background: #000; opacity: .15; animation: rvSpin .8s steps(1) infinite; }
+@keyframes rvSpin { 0% { opacity: 1; } 12.5%, 100% { opacity: .15; } }
+.rv-win.ready .rv-load { display: none; }
+
+.rv-scroll { position: absolute; inset: 0; overflow-y: scroll; overscroll-behavior: contain; scrollbar-width: none; visibility: hidden; }
+.rv-scroll::-webkit-scrollbar { display: none; }
+.rv-win.ready .rv-scroll { visibility: visible; animation: rvIn .3s steps(4, end) both; }
+.rv-page { position: relative; container-type: inline-size; }
+.rv-page img { display: block; width: 100%; height: auto; -webkit-user-drag: none; }
+
+/* the coded "close review" button, over the bottom of the review (sizes are shares of the review's width, so it scales with it) */
+.rv-close { position: absolute; left: 50%; bottom: 8.4cqw; width: 30cqw; transform: translateX(-50%); padding: 1cqw 0; background: #f00; border: .5cqw solid #fff; color: #fff; font: 400 4.4cqw/1.1 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', cursive; text-align: center; cursor: pointer; }
+.rv-close:hover, .rv-close:focus-visible { background: #fff; border-color: #fff; color: #000; outline: none; }
+
+/* the working scrollbar, drawn over the one in the frame picture */
+.rv-bar { position: absolute; left: calc(var(--rv-x) + var(--rv-cw)); top: var(--rv-y); width: var(--rv-sb); height: var(--rv-ch); background: #e4e4e4; display: flex; flex-direction: column; }
+.rv-bar button, .rv-thumb { background: #cfcfcf; border: 2px solid; border-color: #fff #6b6b6b #6b6b6b #fff; padding: 0; }
+.rv-bar button { position: relative; flex: none; height: var(--rv-sb); cursor: pointer; }
+.rv-bar button::after { content: ''; position: absolute; left: 50%; top: 50%; margin: -3px 0 0 -5px; border: 5px solid transparent; }
+.rv-up::after { border-bottom: 6px solid #000 !important; border-top: 0 !important; margin-top: -3px !important; }
+.rv-dn::after { border-top: 6px solid #000 !important; border-bottom: 0 !important; margin-top: -3px !important; }
+.rv-bar button:active { border-color: #6b6b6b #fff #fff #6b6b6b; }
+.rv-track { position: relative; flex: 1; }
+.rv-thumb { position: absolute; left: 0; right: 0; top: 0; height: 40px; cursor: grab; }
+.rv-win:not(.ready) .rv-thumb, .rv-win:not(.ready) .rv-bar button { opacity: .5; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .rv-win, .rv-win.out, .rv-win.ready .rv-scroll, .rv-load i { animation: none; } .rv-load i { opacity: .6; } }
+
+/* the corrupted window: scrolling locks, the screen goes black and the site panics */
+.rv-win.dying .rv-scroll { overflow: hidden; }
+.rv-win.dying .rv-bar, .rv-win.dying .rv-close { pointer-events: none; }
+.rv-dead { position: absolute; inset: 0; z-index: 2; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 0 6%; background: #000; color: #fff; text-align: center; font-family: var(--data, var(--mono, monospace)); }
+.rv-win.dead .rv-dead { display: flex; }
+.rv-dead p { margin: 0; min-height: 1.3em; }
+.rv-dead p:first-child { font-size: 26px; }
+.rv-dead p:last-child { max-width: 480px; font-size: 16px; line-height: 1.5; color: #d4d4d4; }
+
+/* the error picture that replaces the window. The two clickable spots sit over the "Ok" button and the X (shares of the picture: left, top, width, height) */
+.rv-err { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; animation: rvIn .3s steps(4, end) both; }
+.rv-err.out { animation: rvOut .25s steps(4, end) forwards; }
+.rv-err img { display: block; width: 100%; height: auto; -webkit-user-drag: none; }
+.rv-err button { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.rv-ok { left: 34.4%; top: 89.6%; width: 30.6%; height: 6.1%; }
+.rv-errx { left: 89.3%; top: 1.8%; width: 6.7%; height: 4.3%; }
+.rv-err button:focus-visible { outline: 2px solid #f00; }
+
+/* the cookies notification (js/reviews.js showCookies): your picture with clickable spots over DECLINE, ACCEPT and the X. Hover DECLINE and a red vignette appears around the screen. */
+.ck-layer { position: fixed; inset: 0; z-index: 55; pointer-events: auto; }      /* pointer-events: auto = the whole screen behind the notification cannot be clicked (under Maya, 56) */
+.ck-win { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: auto; animation: rvIn .35s steps(5, end) both; user-select: none; }
+.ck-win.out { animation: rvOut .25s steps(4, end) forwards; }
+.ck-win img { display: block; width: 100%; height: auto; -webkit-user-drag: none; }
+.ck-win button { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.ck-win button:focus-visible { outline: 2px solid #f00; }
+.ck-vig { position: fixed; inset: 0; z-index: 53; pointer-events: none; opacity: 0; transition: opacity .35s ease;
+  background: radial-gradient(ellipse at center, rgba(255, 0, 0, 0) 38%, rgba(255, 0, 0, .28) 70%, rgba(220, 0, 0, .62) 100%); }
+.ck-vig.on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .ck-win, .ck-win.out { animation: none; } .ck-vig { transition: none; } }
+
+/* DECLINE / X: the window shakes, and the red vignette flashes a few times before it fades out */
+.ck-win.shake { animation: ckShake .5s linear both; }
+@keyframes ckShake {
+  0%, 100% { transform: translate(-50%, -50%); }
+  12% { transform: translate(calc(-50% - 9px), calc(-50% + 2px)); } 25% { transform: translate(calc(-50% + 8px), calc(-50% - 2px)); }
+  38% { transform: translate(calc(-50% - 6px), calc(-50% + 1px)); } 52% { transform: translate(calc(-50% + 5px), calc(-50% - 1px)); }
+  68% { transform: translate(calc(-50% - 3px), -50%); } 84% { transform: translate(calc(-50% + 2px), -50%); }
+}
+.ck-vig.flash { animation: ckFlash .9s steps(1, end) both; }
+@keyframes ckFlash { 0% { opacity: 1; } 14% { opacity: .1; } 28% { opacity: 1; } 42% { opacity: .15; } 56% { opacity: 1; } 70% { opacity: .7; } 85% { opacity: .35; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ck-win.shake, .ck-vig.flash { animation: none; } }

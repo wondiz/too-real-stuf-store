@@ -1,0 +1,20 @@
+/* =====================================================
+   join.css : the black "join the community" screen (built by js/join.js)
+   ===================================================== */
+.jn { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-start; justify-content: center; padding-top: 30vh; background: #000; color: #fff; font: 400 clamp(13px, 1.4vw, 19px)/1.9 var(--data, var(--mono, monospace)); letter-spacing: .04em; opacity: 0; transition: opacity .5s ease, visibility 0s .5s; visibility: hidden; pointer-events: none; }   /* hidden = invisible AND not clickable */
+.jn.show { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .5s ease; }
+.jn-col { width: min(560px, 88vw); }
+.jn-line { white-space: pre-wrap; overflow-wrap: anywhere; }
+.jn-line .on::after { content: ""; display: inline-block; width: .55em; height: 1em; margin-left: .15em; vertical-align: -.12em; background: #fff; animation: jnCaret 1s steps(1) infinite; }
+@keyframes jnCaret { 50% { opacity: 0; } }
+.jn-line input { margin-left: 1ch; padding: 0; width: 2ch; max-width: 100%; border: 0; border-bottom: 1px solid #fff; border-radius: 0; background: transparent; color: #fff; caret-color: #fff; font: inherit; letter-spacing: inherit; outline: none; }
+.jn-line input.nope { animation: jnNope .3s steps(2, end); }
+@keyframes jnNope { 0% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 100% { transform: none; } }
+.jn-ans { margin-left: 1ch; }
+@media (prefers-reduced-motion: reduce) { .jn { transition: none; } }
+
+/* the discount code in the "thank you for joining" block: blurred until hovered (or focused / tapped) */
+.join .perk { margin-top: 28px; font-size: 12px; }   /* the hover-to-reveal line (code included) */
+.join .perk-code { display: inline-block; padding: 2px 10px; border: 1px solid currentColor; filter: blur(6px); cursor: pointer; user-select: none; transition: filter .6s ease; outline: none; }
+.join .perk-code:hover, .join .perk-code:focus { filter: blur(0); user-select: text; }
+@media (prefers-reduced-motion: reduce) { .join .perk-code { transition: none; } }

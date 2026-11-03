@@ -1,0 +1,20 @@
+/* =====================================================
+   gate.css : the "I'm not a robot" boxes that guard the review (product page, js/gate.js).
+   The boxes use the same look as css/checks.css (.cap, .cap-box ...), which product.html already loads.
+   ===================================================== */
+.gt-layer { position: fixed; inset: 0; z-index: 52; pointer-events: none; background: rgba(0, 0, 0, 0); transition: background .8s ease; }   /* under Maya (56) */
+.gt-layer.on { background: rgba(0, 0, 0, .55); }      /* (the same darkness as the screen that darkens when "Make a Review" is pressed: js/review-game.js) */
+.gt-card { position: absolute; width: min(236px, calc(50vw - 12px)); pointer-events: auto; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+           background: #f9f9f9; border: 1px solid #d3d3d3; box-shadow: 0 6px 22px rgba(0, 0, 0, .45); color: #000; animation: gtPop .18s steps(3, end) both; }
+.gt-card.out { animation: gtOut .35s ease forwards; }
+@keyframes gtPop { from { opacity: 0; transform: scale(.9); } }
+@keyframes gtOut { to { opacity: 0; transform: scale(.96); } }
+.gt-card .cap-row { height: 56px; padding: 0 12px; gap: 11px; font-size: 13px; }
+.gt-card .cap-foot { padding: 2px 12px 4px; font-size: 9px; }
+/* a box that told the truth: it goes red and a cross replaces the tick */
+.gt-card .cap-box.no { border-color: transparent; background: none; cursor: default; }
+.gt-card .cap-box.no::before, .gt-card .cap-box.no::after { content: ''; position: absolute; left: 11px; top: 0; width: 4px; height: 24px; background: #d00; transform: rotate(45deg); }
+.gt-card .cap-box.no::after { transform: rotate(-45deg); }
+.gt-card.shake { animation: gtShake .3s steps(4, end); }
+@keyframes gtShake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+@media (prefers-reduced-motion: reduce) { .gt-card, .gt-card.out { animation: none; } .gt-layer { transition: none; } }

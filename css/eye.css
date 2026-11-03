@@ -1,0 +1,95 @@
+/* =====================================================
+   eye.css : the red "authenticating" eye (built by js/eye.js). Own file so any page can use it.
+   Images (same size, so they line up): images/eye-white.png (eye + scribbles), images/eye-pupil.png (pupil).
+   Optional blink frames: images/blink/blink-01.png ...
+   ===================================================== */
+.eye { position: fixed; inset: 0; z-index: 70; overflow: hidden; background: #ff0a0a; visibility: hidden; }
+.eye.show { visibility: visible; }
+
+.eye-wrap {                          /* "cover" the screen; 143.98 = your PNG's width / height x 100 (1555 / 1080) */
+  position: absolute; left: 50%; top: 50%; width: max(100vw, 143.98vh); aspect-ratio: 1555 / 1080; transform: translate(-50%, -50%);
+}
+.eye-wrap img { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; -webkit-user-drag: none; }
+.eye-stack { position: absolute; inset: 0; transform-origin: 50% 51%; }
+.eye-stack.blinking { animation: eyeLid .5s ease-in-out; }          /* stand-in blink until your frames exist */
+@keyframes eyeLid { 0%, 100% { transform: scaleY(1); } 45%, 55% { transform: scaleY(.03); } }
+
+.eye-blink { visibility: hidden; }
+.eye-blink.on { visibility: visible; }
+.eye-white { filter: url(#eyeKnock); }                              /* the red of the PNG goes see-through, so the photo shows behind the scribbles */
+.eye-pupil { will-change: transform; transform-origin: 44% 56%; }
+
+.eye-photo { position: absolute; inset: 0; clip-path: ellipse(35% 32% at 50% 51%); background: #d9d9d9; visibility: hidden; }   /* tune the opening here */
+.eye.show .eye-photo.show { visibility: visible; animation: eyeSnap .35s steps(3, end); }
+@keyframes eyeSnap { 0% { filter: brightness(4); } 100% { filter: none; } }
+.eye-photo img { left: 15%; top: 19%; width: 70%; height: 64%; object-fit: cover; transform: scaleX(-1); }   /* mirrored, like a mirror */
+.eye-photo img:not([src]) { display: none; }
+.eye-photo svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: #8a8a8a; stroke-width: 1.2; }
+.eye-photo.has-photo svg { display: none; }
+
+.eye-bottom { position: absolute; left: 50%; bottom: 4vh; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 92vw; }
+.eye-type { max-width: 92vw; padding: .15em .5em; background: #ff0a0a; color: #000; font: 400 clamp(16px, 2.4vw, 30px) var(--mono, monospace); white-space: nowrap; }
+.eye-type.on::after { content: ""; display: inline-block; width: .55em; height: 1em; margin-left: .15em; vertical-align: -.12em; background: #000; animation: eyeCaret 1s steps(1) infinite; }
+@keyframes eyeCaret { 50% { opacity: 0; } }
+.eye-choices { display: flex; gap: 28px; visibility: hidden; }
+.eye-choices.show { visibility: visible; }
+.eye-choices button { min-width: 110px; padding: .3em 1.2em; background: #ff0a0a; border: 1px solid #000; color: #000; font: 400 clamp(16px, 2.2vw, 26px) var(--mono, monospace); cursor: pointer; }
+.eye-choices button:hover, .eye-choices button:focus-visible { background: #000; color: #fff; outline: none; }
+/* the black countdown before the eye */
+.eye.dark { background: #000; }
+.eye.dark .eye-wrap, .eye.dark .eye-bottom { visibility: hidden; }
+.eye-count { display: none; position: absolute; left: 50%; top: 50%; width: min(780px, 92vw); transform: translate(-50%, -50%); text-align: center; color: #fff; font-family: var(--data, var(--mono, monospace)); }
+.eye.dark .eye-count { display: block; }
+.eye-count p { margin: 0; min-height: 1.25em; }
+.eye-count .c-big { font-size: clamp(22px, 3vw, 34px); line-height: 1.25; }                        /* the old "thank you" screen: a big line, */
+.eye-count .c-small { max-width: none; white-space: pre-line; margin: 16px auto 0; font-size: clamp(15px, 1.7vw, 19px); line-height: 1.5; color: #d4d4d4; }   /* a small line, */
+.eye-count .c-line { margin-top: 28px; font-size: clamp(15px, 1.7vw, 19px); line-height: 1.5; }    /* then the countdown */
+.eye-count .on::after { content: ""; display: inline-block; width: .55em; height: 1em; margin-left: .15em; vertical-align: -.12em; background: #fff; animation: eyeCaret 1s steps(1) infinite; }
+
+/* after the eye: the red terminal with black typed questions */
+.eye-term { display: none; position: absolute; inset: 0; z-index: 5; align-items: center; justify-content: center; padding: 0 6vw; background: #ff0a0a; }
+.eye.term-on .eye-term { display: flex; }
+.eye.term-on .eye-count { display: none; }
+.term { width: min(1100px, 100%); text-align: left; }
+.term-line { margin: 0; font: 400 clamp(18px, 2.6vw, 36px)/1.6 var(--data, var(--mono, monospace)); color: #000; overflow-wrap: anywhere; }
+.term-line::before { content: "> "; }
+.term-name { margin-left: .5ch; }
+.term-input { margin: 0 0 0 .5ch; padding: 0; width: 2ch; max-width: 100%; border: 0; border-bottom: 2px solid #000; border-radius: 0; background: transparent; color: #000; caret-color: #000; font: inherit; outline: none; }
+.term-input.nope { animation: eyeNope .3s steps(2, end); }
+@keyframes eyeNope { 0% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 100% { transform: none; } }
+.term-line.active .t::after { content: ""; display: inline-block; width: .55em; height: 1em; margin-left: .15em; vertical-align: -.12em; background: #000; animation: eyeCaret 1s steps(1) infinite; }
+@media (max-width: 600px) { .eye-type { white-space: normal; text-align: center; } }
+.term-yn { margin-left: 1ch; }
+.term-yn button { margin-right: 14px; padding: .05em .7em; background: transparent; border: 1px solid #000; color: #000; font: inherit; cursor: pointer; }
+.term-yn button:hover, .term-yn button:focus-visible { background: #000; color: #ff0a0a; outline: none; }
+.eye-fail { display: none; position: absolute; inset: 0; z-index: 6; flex-direction: column; align-items: center; justify-content: center; padding: 0 6vw; background: #ff0a0a; color: #000; text-align: center; font-family: var(--data, var(--mono, monospace)); }
+.eye.fail-on .eye-fail { display: flex; }
+.eye-fail p { margin: 0; min-height: 1.25em; }
+.eye-fail .f-big { max-width: 900px; font-size: clamp(26px, 3.6vw, 48px); line-height: 1.25; }
+.eye-fail .f-small { max-width: 640px; margin-top: 20px; font-size: clamp(15px, 1.7vw, 20px); line-height: 1.5; }
+.eye-fail .on::after { content: ""; display: inline-block; width: .55em; height: 1em; margin-left: .15em; vertical-align: -.12em; background: #000; animation: eyeCaret 1s steps(1) infinite; }
+
+/* the "leave." flash: the eyeball screen under a low red tint */
+.eye-leave { display: none; position: absolute; inset: 0; z-index: 6; align-items: center; justify-content: center; background: rgba(255, 0, 0, .35); pointer-events: none; }
+.eye.leave-on .eye-leave { display: flex; }
+.eye-leave p { margin: 0; color: #ff0a0a; font: 400 clamp(28px, 4vw, 52px) var(--data, var(--mono, monospace)); text-shadow: 0 0 10px #000, 0 0 3px #000; }
+.eye.leave-on .eye-term, .eye.leave-on .eye-fail, .eye.leave-on .eye-bottom { display: none; }
+
+
+/* the WARNING screen (warnEye in eye.js): red eye under a red tint, typed text, then options */
+.eye-warn { display: none; position: absolute; inset: 0; z-index: 6; flex-direction: column; align-items: center; justify-content: center; gap: 34px; padding: 0 8vw; text-align: center; background: rgba(255, 0, 0, .35); pointer-events: none; }
+.eye.warn-on .eye-warn { display: flex; }
+.eye.warn-on .eye-term, .eye.warn-on .eye-fail, .eye.warn-on .eye-bottom, .eye.warn-on .eye-count { display: none; }
+.eye.warn-black { background: #000; }
+.eye.warn-black .eye-wrap, .eye.warn-black .eye-warn { visibility: hidden; }
+.eye-warn .w-text { margin: 0; max-width: 900px; min-height: 2.6em; white-space: pre-line; color: #ff0a0a; font: 400 clamp(24px, 3.4vw, 46px)/1.3 var(--data, var(--mono, monospace)); text-shadow: 0 0 10px #000, 0 0 3px #000; }
+.eye-warn .w-text.on::after { content: ""; display: inline-block; width: .5em; height: .9em; margin-left: .15em; vertical-align: -.1em; background: #ff0a0a; animation: eyeCaret 1s steps(1) infinite; }
+.eye-warn .w-opts { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; visibility: hidden; min-height: 2.4em; }
+.eye.warn-ready .w-opts { visibility: visible; pointer-events: auto; }
+.eye-warn .w-opts button { min-width: 140px; padding: .35em 1.2em; background: #000; border: 1px solid #ff0a0a; color: #ff0a0a; font: 400 clamp(16px, 2vw, 24px) var(--mono, monospace); cursor: pointer; }
+.eye-warn .w-opts button:hover, .eye-warn .w-opts button:focus-visible { background: #ff0a0a; color: #000; outline: none; }
+
+/* the first warning screen: the text trembles */
+.eye-warn .w-text.shake { animation: warnShake .09s steps(2, end) infinite; }
+@keyframes warnShake { 0% { transform: translate(-1.5px, .5px) rotate(-.15deg); } 50% { transform: translate(1.5px, -1px) rotate(.15deg); } 100% { transform: translate(-.5px, 1px) rotate(-.1deg); } }
+@media (prefers-reduced-motion: reduce) { .eye-warn .w-text.shake { animation: none; } }

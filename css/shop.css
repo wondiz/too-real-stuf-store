@@ -1,0 +1,158 @@
+/* =====================================================
+   shop.css : only what is new on the shop page (NEW IN / MEN / WOMEN / KIDS / SALE are all this page).
+   The nav, cards and footer come from mainpage.css.
+   Built from the Figma shop frame.
+   ===================================================== */
+
+/* the category you are on, underlined in the top bar */
+.nav li.here { text-decoration: underline; text-underline-offset: 6px; }
+
+/* =====================================================
+   HEADING
+   ===================================================== */
+.shop-head { padding-top: 32px; text-align: center; }
+.shop-head h1 { font: 400 32px var(--serif); }
+.shop-head p  { margin-top: 12px; font: 400 14px var(--serif); }
+
+/* =====================================================
+   THE SHIRT  (floats, with a label pointing at each side)
+   Everything is placed in % of the section, so it keeps its shape as the window changes.
+   ===================================================== */
+.shop-hero {
+  position: relative;
+  container-type: inline-size;
+  max-width: 1440px;
+  margin: 0 auto;
+  aspect-ratio: 861 / 340;
+  isolation: isolate;                 /* keeps the shirt's layers under the sticky top bar */
+}
+.shop-hero .shirt {
+  position: absolute; left: 36.6%; top: 7%; width: 26.1%; height: 82%;
+  object-fit: contain;
+  animation: shopFloat 5s ease-in-out infinite;
+}
+/* the 3D shirt: a canvas a little wider than the shirt so it can turn without being cut off.
+   It replaces the flat picture once the model has loaded (.has3d). Drag to turn it. */
+.shop-hero .shirt3d {
+  position: absolute; left: 31%; top: 5%; width: 38%; height: 86%;
+  display: none; cursor: grab; touch-action: pan-y;
+}
+.shop-hero .shirt3d.grab { cursor: grabbing; }
+.shop-hero.has3d .shirt3d { display: block; }
+.shop-hero.has3d .shirt { display: none; }
+.shop-hero .floor {
+  position: absolute; left: 45.1%; top: 93.5%; width: 9.8%; height: 4.2%;
+  border-radius: 50%; background: #9a9a9a;
+  animation: shopFloor 5s ease-in-out infinite;
+}
+@keyframes shopFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.4%); } }
+@keyframes shopFloor { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(.86); opacity: .75; } }
+
+.shop-hero .tag {
+  position: absolute; margin: 0;
+  font: 400 1.95cqw/1.2 var(--serif);
+  border-bottom: 1px solid #000;
+  padding-bottom: .25em;
+  white-space: nowrap;
+}
+.shop-hero .tag.l { left: 18.2%; width: 26.8%; top: 38%; text-align: left;  }
+.shop-hero .tag.r { left: 55.7%; width: 25.5%; top: 61%; text-align: right; }
+
+/* =====================================================
+   THE CARDS  (4 across; same card as the home page, just sized to the grid)
+   --u = one "px" of the home card, so the type and spacing scale with the card
+   ===================================================== */
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 22px 18px;
+  padding: 0 38px;
+  margin-top: 42px;
+}
+.shop-grid .card {
+  flex: none; margin: 0; height: auto;
+  aspect-ratio: 286 / 423;
+  container-type: inline-size;
+}
+.shop-grid .card .box  { inset: 0; }
+.shop-grid .card .pic  { left: 1px; right: 1px; top: 10.5cqw; height: 129.4cqw; }
+.shop-grid .card .pic img { transform: translateY(-14cqw) scale(1.2); }
+.shop-grid .card .hover { left: 1px; right: 1px; top: 21cqw; }
+.shop-grid .card .hover span { font-size: 7.7cqw; }
+.shop-grid .card .heart { right: 7.7cqw; top: 5.2cqw; width: 9.4cqw; height: 11.5cqw; }
+.shop-grid .card .heart svg { width: 100%; height: 100%; }
+.shop-grid .card .name  { left: 6.3cqw; top: 81.3%; font-size: 7.7cqw; }   /* top is a % here: insist.css gives the home cards fixed px */
+.shop-grid .card .price { left: 6.3cqw; top: 89.1%; font-size: 8.4cqw; color: #000; }
+.shop-grid .card .code  { right: 4.8cqw; top: 89.1%; font-size: 8.4cqw; }
+
+/* the vanishing cards: a taken card keeps its place in the grid but shows only who bought it */
+.shop-grid .card .soldmsg { display: none; margin: 0; }
+.shop-grid .card.sold { cursor: default; }
+.shop-grid .card.sold .pic, .shop-grid .card.sold .hover, .shop-grid .card.sold .heart,
+.shop-grid .card.sold .name, .shop-grid .card.sold .price, .shop-grid .card.sold .code { display: none; }
+.shop-grid .card.sold .box { border-style: dashed; border-color: #bbb; background: #f4f4f4; }
+.shop-grid .card.sold .soldmsg {
+  display: flex; position: absolute; inset: 0; align-items: center; justify-content: center; padding: 0 8cqw;
+  text-align: center; color: #777; font: 300 6.4cqw/1.45 var(--mono, monospace);
+  animation: soldIn .25s steps(3, end);
+}
+@keyframes soldIn { from { opacity: 0; } }
+
+/* =====================================================
+   PAGE NUMBERS
+   ===================================================== */
+.pager {
+  display: flex; justify-content: center; gap: 4px;
+  padding: 44px 0 56px;
+  font: 400 18px var(--serif);
+}
+.pager button { font: inherit; padding: 4px 3px; cursor: pointer; }
+.pager button:hover { text-decoration: underline; }
+.pager button.on { text-decoration: underline; text-underline-offset: 4px; }
+.pager .next { margin-left: 4px; font-size: 14px; letter-spacing: 1px; }
+
+/* =====================================================
+   YOU'VE BEEN AUTHENTICATED  (grey block above the footer)
+   ===================================================== */
+.sauth {
+  background: var(--grey);
+  display: flex; align-items: center; gap: 100px;
+  padding: 70px 117px;
+  min-height: 490px;
+}
+.sauth .tagcard {
+  position: relative; flex: none;
+  width: 217px; height: 281px;
+  background: #ebebeb;
+  display: grid; place-items: center;
+}
+.sauth .tagcard img.face { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.sauth .tagcard .ph { width: 60px; height: 60px; border: 5px solid #777; border-radius: 50%; }
+.sauth .stamp {
+  position: absolute; left: -34px; bottom: 28px;
+  padding: 2px 10px;
+  border: 4px solid #d00; color: #d00; background: rgba(255, 255, 255, .15);
+  font: 900 44px/1 Impact, 'Arial Narrow Bold', 'Arial Black', sans-serif;
+  letter-spacing: 1px; text-transform: uppercase;
+  transform: rotate(-4deg);
+  mix-blend-mode: multiply;
+}
+.sauth h2 { font: 700 32px var(--serif); }
+.sauth .m { margin-top: 22px; font: 300 24px/1.2 var(--mono); max-width: 742px; }
+.sauth .m + .m { margin-top: 52px; max-width: 547px; }
+.sauth .red { color: var(--red); }
+
+/* =====================================================
+   PHONES
+   ===================================================== */
+@media (max-width: 900px) {
+  .shop-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 0 16px; }
+  .sauth { flex-direction: column; align-items: flex-start; gap: 40px; padding: 48px 24px; }
+  .sauth .m { font-size: 18px; }
+  .sauth h2 { font-size: 24px; }
+  .sauth .stamp { font-size: 40px; left: -12px; }
+  .shop-hero .tag { font-size: 2.6cqw; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-hero .shirt, .shop-hero .shirt3d, .shop-hero .floor { animation: none; }
+}

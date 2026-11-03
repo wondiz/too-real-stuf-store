@@ -1,0 +1,44 @@
+/* =====================================================
+   insist.css : the styles for insist.js and the "real" labels. Own file so you can paste it in anywhere.
+   ===================================================== */
+[data-from][hidden] { display: none !important; }        /* things that wait for a story stage */
+
+.card .real { position: absolute; left: 12.6%; top: 95.5%; font: 400 12px var(--data); color: #777; letter-spacing: .02em; }   /* the little line under the price */
+
+/* the announcement bar: only the words fade, the grey bar stays */
+.announce .ann { transition: opacity .4s ease; }
+.announce.swap .ann { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .announce .ann { transition: none; } }
+
+/* the join block's extra lines */
+.join .insist { max-width: 620px; margin: 22px auto 0; font: 400 13px/1.6 var(--data); opacity: .75; }   /* quiet subtext under the main line */
+
+/* the search box: sits just left of the magnifying glass; its answers drop down under the icons */
+.icons { position: relative; }
+.icons img.retail { cursor: pointer; }
+.srch { position: absolute; right: calc(100% + 8px); top: 50%; transform: translateY(-50%); }
+.srch input { width: 200px; height: 34px; padding: 0 10px; border: 1px solid var(--line, #5b5b5b); background: #fff; font: 400 14px var(--data); color: #000; outline: none; }
+.srch input:focus { border-color: var(--red, red); }
+.srch-out { position: absolute; right: 0; top: calc(100% + 12px); width: max-content; max-width: 300px; padding: 10px 12px; background: #fff; border: 1px solid var(--line, #5b5b5b); color: var(--red, red); font: 400 13px/1.4 var(--data); text-align: left; z-index: 5; }
+.srch-out[hidden] { display: none; }
+.srch-out a { color: inherit; text-decoration: underline; }
+
+/* the Terms page */
+.terms { max-width: 760px; margin: 70px auto 100px; padding: 0 24px; font: 400 15px/1.6 var(--data); color: #000; }
+.terms h1 { font: 700 34px/1.2 var(--serif, serif); }
+.terms h2 { margin-top: 32px; font: 700 18px var(--serif, serif); }
+.terms p { margin-top: 10px; }
+.terms .red { color: var(--red, red); }
+
+/* no visible scrollbars anywhere (everything still scrolls). !important so no earlier rule can bring one back */
+html, body, * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+
+/* a little more room under the price for the "real" line (the card is 18px taller, and these three are placed in px so nothing else moves) */
+.card { height: 441px; }
+.card .name { top: 344px; }
+.card .price, .card .code { top: 377px; }
+.card .real { top: 414px; }
+
+/* a smaller Join Now button */
+.join button { width: 220px; height: 64px; margin-top: 36px; font-size: 20px; }
