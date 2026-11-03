@@ -15,10 +15,10 @@
   <!-- 1. the code screen that runs first (Figma frame 1:594). boot.js prints it line by line. -->
   <main id="boot" aria-hidden="true">
     <div class="bios">
-      <div class="ln on"><b>REAL STUF.,</b>       Released: 01/13/2000</div>
-      <div class="ln on"><b>Real clothing company.</b>       100% real and authentic, Real Stuf. & Co</div>
-      <div class="ln gap-l">WHT S13 NEW USER 001 DETECTED</div>
-      <div class="ln gap-m">TSH NEW RELEASE(tm) XX 113</div>
+      <div class="ln on"><b>Heffernan,</b>       Released: 01/13/2000</div>
+      <div class="ln on"><b>Henry Inc.</b>       HHBIOS (C)2000 Heffernan Henry Inc.,</div>
+      <div class="ln gap-l">HSP S13 2000-2022 Special UC131S</div>
+      <div class="ln gap-m">HSP Showcase(tm) XX 113</div>
       <div class="ln">Checking RAM : <span id="ram">14000</span><span id="ramOk"> OK</span></div>
       <div class="ln gap-s">LOADING RESOURCES (<span id="loadN">18</span>/19)</div>
       <div class="ln gap-m res">   Loaded keyboardKeydown2         ... <span>58</span>%</div>
@@ -30,8 +30,8 @@
       <div class="ln res">   Loaded ccType                   ... <span>89</span>%</div>
       <div class="ln res">   Loaded startup                  ... <span>95</span>%</div>
       <div class="foot">
-        <div>Press <b>DEL</b> to enter SETUP , <b>ESC</b> to skip verification testing</div>
-        <div id="today">18/10/2026</div>
+        <div>Press <b>DEL</b> to enter SETUP , <b>ESC</b> to skip memory test</div>
+        <div id="today">10/31/2026</div>
       </div>
     </div>
   </main>
@@ -40,10 +40,48 @@
   <main id="portal" hidden>
     <div class="box">
       <p>Click start to enter Real Stuf.</p>
-      <a class="start" href="home.html" target="_blank" rel="opener" draggable="false">Start</a>
+      <a class="start" href="home.html">Start</a>
     </div>
   </main>
 
+  <script src="js/camera.js"></script>
   <script src="js/boot.js"></script>
+  <script>
+    /* START: (1) asks for the camera, because a request that comes from a CLICK opens the browser's full permission box (one that fires by itself only shows a tiny "Use camera?" chip in Chrome),
+       waits for the answer, then (2) opens the site in a NEW tab (a tab opened by a script is allowed to close itself, which the ending needs) with the photo put into it.
+       If the browser blocks the new tab (the answer took too long to count as a click), nothing is lost: press Start again and the site opens straight away.
+       If the new tab is blocked for good, the site opens in this tab instead. */
+    (function () {
+      var KEY = 'realStuf.facePhoto', asked = false, busy = false;
+      function hasPhoto() { try { return !!sessionStorage.getItem(KEY); } catch (err) { return false; } }
+      function carry(w) {                                       // the photo is not saved yet? put it into the new tab as soon as it is ready
+        var t0 = Date.now();
+        (function go() {
+          try { var ph = sessionStorage.getItem(KEY); if (ph && !w.closed) { if (!w.sessionStorage.getItem(KEY)) w.sessionStorage.setItem(KEY, ph); return; } } catch (err) { return; }
+          if (!w.closed && Date.now() - t0 < 8000) setTimeout(go, 300);
+        })();
+      }
+      function open(href, mayFallBack) {
+        var w = null; try { w = window.open(href, '_blank'); } catch (err) {}
+        if (w) { carry(w); return true; }
+        if (mayFallBack) location.href = href;
+        return false;
+      }
+      document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a.start');
+        if (!a) return;
+        e.preventDefault(); e.stopPropagation();                // stopPropagation: camera.js's own Start handler must not also run
+        if (busy) return;
+        var href = a.href;
+        if (asked || hasPhoto() || !window.askCamera) { open(href, true); return; }
+        asked = true; busy = true; a.style.opacity = '.6';
+        var wait = new Promise(function (r) { setTimeout(r, 90000); });
+        Promise.race([askCamera(true), wait]).then(function () {
+          busy = false; a.style.opacity = '';
+          open(href, false);                                    // blocked? Start stays here; the next press opens it
+        });
+      }, true);
+    })();
+  </script>
 </body>
 </html>
