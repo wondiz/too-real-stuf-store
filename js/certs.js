@@ -226,7 +226,7 @@
       if (win.classList.contains('done')) return;
       const j = judgeSign(strokes, tpl);
       scoreEl.textContent = (tpl && j.verdict !== 'short') ? 'MATCH: ' + j.score + '%' : '';
-      msg.textContent = { short: 'that is not a signature.', scribble: 'that is not a signature. that is a scribble.', nomatch: 'that does not look like ' + (name || 'you') + '.', real: '...signed.' }[j.verdict];
+      msg.textContent = { short: 'that is not a signature.', scribble: 'that is not a match.', nomatch: 'that does not look like ' + (name || 'you') + '.', real: '...signed.' }[j.verdict];
       if (j.verdict === 'real') { win.classList.add('done'); scoreEl.classList.add('good'); signedOff(win); return; }
       window.sfx && sfx('warn', 1);
       if (++sgFails === SIGN_HINT_AFTER && window.maya) maya.say(SIGN_HINT, null, true);
