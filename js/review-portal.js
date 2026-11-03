@@ -49,7 +49,7 @@
   ];
   const SCORED = QUESTIONS.filter(function (x) { return !x.yn; }).length;      // the last one is not part of the score
 
-  const ALONE = { yes: ['...good.', 'lets keep it that way.'], no: ['...then who is that?', 'do not turn around.'] };    // the site's reaction to the last question
+  const ALONE = { yes: ['...good.', 'that makes this easier for us...'], no: ['...then who is that?', 'do not turn around.'] };    // the site's reaction to the last question
 
   // the confidence scale: the first one whose max the percentage does not pass
   const TIERS = [
