@@ -1,0 +1,493 @@
+/* =====================================================
+   assistant.js : Maya, the website's personality. Put this script (plus the others listed in home.html) on every page:
+   Maya builds herself, sits in the same corner, and her messages are remembered between pages (this tab only).
+   - Tapping Maya opens a simple messages box. The visitor can't type: they pick from the messages below.
+   - Maya also talks on her own (the greeting, the nudges, and the story after the popup is closed).
+   THE STORY (stage):  new > busy > popup > suspicious > captcha > free > alert > eye > done
+   All the wording is a FIRST DRAFT: edit the lists below.
+   ===================================================== */
+(function () {
+  /* ---------- the wording ---------- */
+  const GREETING = "Hi! I'm Maya! I'll be here to help you throughout your time here!";
+  const ASK      = 'What can I help you with?';
+  // she never runs out of things to say: whenever the visitor goes quiet she comments on how real everything is (a first draft: change them freely)
+  const IDLE_LINES = ['still here. everything on this site is real.', 'whatever you are looking at right now? real.', 'real cotton. real stitching. real me.... probably.', 'no fakes here. none. I checked twice.', '...every single product. real. I would know.', 'you can look as long as you like. it will still be real.', 'I have never sold a fake in my life. or any life.', 'take your time. the products are not going anywhere. they are real.'];
+
+  const CHAT = [                            // send = what the visitor sends, reply = Maya's answer (one bubble each)
+    { send: 'I want to browse the latest collection!',
+      reply: ['Great choice! Everything in our collection is real.', 'Let me take you to the bestsellers :)'],
+      sus: ['...fine. everything in our collection is real.', 'it is. I checked.', 'the bestsellers are down there. go on.'],   // sus = what she says instead, once she is suspicious of the visitor
+      watch: true,                          // watch = if the visitor then goes quiet, she starts insisting (see WATCH below)
+      go: '#best' },                        // go = scroll the page to this spot
+    { send: 'I want to join the Real Stuf. Community!',
+      reply: ['Yay! You are going to love it here.', 'Join us so we can trust you like you can trust us!'],
+      sus: ['...you want to join now?', 'members still get 15% off. we are real, you know.', '...are you?'],
+      watch: true,
+      go: '#join' },
+    { send: 'where am i...?',
+      reply: ['...?', 'What do you mean?...did you not come here on purpose?', '...thats odd...', '...', 'alright, sit tight, Im going to need you to verify your identity first.'],
+      sus: ["you're on Real Stuf.... still.", 'a real website. real people. real customers.', '...why do you keep asking?'],
+      afterJoin: ['you\'re on Real Stuf.', 'a real website. real people. real customers.'],   // afterJoin = what she says once they have joined
+      then: function () { openPopup(); } }   // then = runs after the last reply (here: the Join popup)
+  ];
+
+  // until the visitor answers her (picks a message), she keeps trying, even if the box is open. The last nudge starts the eye (js/eye.js).
+  const IGNORE_LINE = '...are you ignoring me..?';   // when she says this, her words start to appear next to the visitor's cursor (until they talk to her)
+  const NUDGES = ['hello? Maya hereeeeee', 'we offer real products ONLY! no need to look around over there!', 'click on this when you see this!', '....hello???...', IGNORE_LINE, '....stop looking around...theres nothing to see, i swear....', '...strange... are you a bot...?', '....authenticating now...'];
+
+  // after they browse or ask to join and then do nothing, she can't help herself. If they still ignore her (and haven't joined), the nudges above start again.
+  const WATCH = ['all of our products are real, you know.', 'i swear on my life- er i mean robot life - i mean real life.'];
+
+  // after the eye (and its questions) she is suspicious of the visitor, but still insists everything is real. First draft: change freely.
+  const AFTER_EYE  = ['...ok. you passed.', 'for now.', 'everything here is real. I hope you are too.'];     // said right after the eye
+  const IDLE_SUS   = ['everything here is real. ...I am still not sure about you.', 'I am watching. it is real. all of it.', '...you answered quickly. real people hesitate.', 'the products are real. I have checked them. I am checking you too.', 'still here. still real. ...are you?', 'I believe everything on this site. ...I do not believe everyone looking at it.'];   // her idle comments once the eye is over
+  // once the eye has been through (she is suspicious of them), her chat options change: they are the questions that make HER nervous
+  const CHAT_ANXIOUS = [
+    { send: 'is this website real?', reply: ['of course it is.', 'why would you ask that?', '...who told you it was not?', 'it is real. it is real. it is REAL.'] },
+    { send: 'who made these shirts?', reply: ['real humans.', 'real humans with real hands.', 'why? what did you find?'] },
+    { send: 'can I get a refund?', reply: ['a refund for what?', 'there is nothing wrong with them.', 'there is nothing wrong with them. ...is there?'] }
+  ];
+  // the shop is locked until they join (or pass the "I'm not a robot" box): clicking NEW IN / MEN / WOMEN / KIDS / SALE or a product makes her say this, then the join popup opens
+  // (every time they try the shop again she is more annoyed. The third popup is the one that turns red and ends in the leave screen.)
+  const GATE_LINES = [
+    'sorry! you must join our community to view our products. our products are all real so you prove yourself too.',
+    '...you clicked it again. I said you must join. real customers join.',
+    'that is three times. I am being very patient. JOIN. THE. COMMUNITY.',
+    'STOP CLICKING. JOIN.'
+  ];
+  const GATE_FIRST_COLD = '...no. you have not joined. real customers join first.';   // the first "sorry!" line, but when she is suspicious of them (they closed the popup or went through the red eye): no apology
+  const POPUP_ESCALATE_AT = 3;    // the Nth popup is the escalating one (each "No thanks." / X turns the screen redder, then the leave screen)
+  const AFTER_CLOSE = ["you shouldn't have done that....", 'why would you do that?.....', 'what are you hiding....'];   // the visitor closed the popup
+  const FREE        = 'ok youre free to look around... for now...';                                          // after the box is ticked
+  const CLICKS_TO_ALERT = 7;                                                                                  // clicks (after that) before the laptop alert
+  // native: true = a REAL browser alert() (the browser draws it; its button always says OK, so the instruction goes in the text). false = the fake laptop-style alert from checks.js, with your own button text.
+  const ALERT = { title: 'ROBOTIC ACTIVITY DETECTED', text: 'Press OK to proceed to authentication.', button: 'proceed to authentication', native: true };
+
+  /* ---------- the tuning knobs (ms) ---------- */
+  const TIP_AFTER   = 600;    // before the greeting bubble appears
+  const TIP_FOR     = 15000;  // how long a bubble stays if nothing newer comes
+  const TIP_GAP     = 500;    // the bubble goes quiet this long between messages, so each one reads as new
+  const NUDGE_EVERY = 7000;   // quiet time between one unanswered nudge and the next
+  const RESUME_GAP  = 1500;   // when the nudges start again, how soon the first one comes
+  const EYE_AFTER   = 2000;   // after "authenticating now..." before the black countdown
+  const TYPE_BASE   = 500;    // Maya's "typing..." time in the box, plus
+  const TYPE_PER    = 18;     //   this much per letter
+  const READ_BASE   = 900;    // time to read a message before the next one starts, plus
+  const READ_PER    = 35;     //   this much per letter
+  const IDLE_FOR    = 5000;   // no mouse, keys or scrolling for this long after her answer, and she starts insisting
+  const IDLE_TALK   = 6000;   // no mouse, keys or scrolling for this long and she speaks up (it never goes silent)
+  const IDLE_GAP    = 6000;   // and at least this long since she last spoke
+  const IGNORE_FOR  = 4000;   // after that, if they still haven't answered her (and haven't joined), the nudges start again
+  const CAPTCHA_AFTER = 2500; // the "I'm not a robot" box comes this long after Maya has finished her messages (and no popup is up)
+  const REVIEWS_JOIN = 5000;  // after joining and coming back to the page (Maya says welcome), the review windows pop up
+  const ALERT_AFTER = 600;    // after the last click, before the alert
+
+  /* ---------- what Maya remembers (this tab only) ---------- */
+  const KEY = 'realStuf.ibbi';
+  let S = { log: [], used: [], stage: 'new', clicks: 0, n: 0, asked: false, greeted: false, allDone: false };
+  try { S = Object.assign(S, JSON.parse(sessionStorage.getItem(KEY) || '{}')); } catch (e) {}
+  function save() { try { sessionStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function stage(s) { S.stage = s; if (s === 'eye' || s === 'done') S.ignoring = false; save(); window.dispatchEvent(new CustomEvent('realstuf:stage')); }   // insist.js listens
+  // "joined" = they went through the join process (the eye, or later a sign-up form). Call markJoined() when that finishes.
+  window.markJoined = function () {
+    try { sessionStorage.setItem('realStuf.joined', '1'); } catch (e) {}
+    window.dispatchEvent(new CustomEvent('realstuf:joined'));          // home.js swaps the bottom block
+  };
+
+  // the real join (js/join.js: black screen, name, date of birth). Maya uses the name from then on.
+  let joining = false;
+  window.beginJoin = function () {
+    if (joining) return;
+    if (!window.startJoin) { console.warn('Maya: startJoin() is missing. Is js/join.js loaded (and css/join.css)?'); return; }
+    joining = true; S.refused = false; save();
+    window.closeJoinPopup && closeJoinPopup();
+    if (early() || S.stage === 'suspicious') { stage('free'); S.clicks = 0; save(); }   // the story's checks are over: they joined the proper way
+    startJoin(function (v) {
+      joining = false; markJoined();
+      say(['welcome to the real stuf community, ' + v.name + '! :)', '(yes, thats how we spell stuff)']);
+      try { sessionStorage.setItem('realStuf.reviewsAt', String(Date.now() + REVIEWS_JOIN + TIP_GAP)); } catch (e) {}   // written down, so if they click into another page first, THAT page shows the reviews at the same moment
+      setTimeout(function () { reviews(); }, REVIEWS_JOIN + TIP_GAP);
+    });
+  };
+  document.addEventListener('click', function (e) { if (e.target.closest('.join button')) beginJoin(); });
+  const hasJoined = function () { try { return sessionStorage.getItem('realStuf.joined') === '1'; } catch (e) { return false; } };
+  const early = function () { return S.stage === 'new' || S.stage === 'busy' || S.stage === 'popup'; };
+
+  // testing shortcut: open any page with ?stage=captcha (or suspicious, alert, free, eye, new) to jump straight to that part of the story
+  const jump = /[?&]stage=(\w+)/.exec(location.search);
+  if (jump) { S.stage = jump[1]; S.n = 0; save(); }
+
+  // the shop pages can't be opened directly until they have joined: they are sent back to the home page.
+  // (testing: open any page with ?unlock=1 to skip this and mark yourself as joined)
+  if (/[?&]unlock=1/.test(location.search)) { try { sessionStorage.setItem('realStuf.joined', '1'); } catch (e) {} }
+  if (/(^|\/)(shop|product|review)\.html$/.test(location.pathname) && !hasJoined()) { location.replace('home.html'); return; }
+
+  /* ---------- Maya's markup: built here, so every page gets the same one ---------- */
+  const $ = function (id) { return document.getElementById(id); };
+  if (!$('bot')) document.body.insertAdjacentHTML('beforeend',
+    '<aside class="bot" id="bot" aria-label="Maya, the Real Stuf. assistant">' +
+      '<div class="phone" id="phone" role="dialog" aria-label="Messages with Maya" hidden>' +
+        '<div class="phone-head"><span class="ibbi-face" aria-hidden="true">i</span><b>Maya</b><button class="phone-x" id="phoneX" type="button" aria-label="Close the messages">&times;</button></div>' +
+        '<div class="phone-log" id="phoneLog" aria-live="polite"></div><div class="phone-opts" id="phoneOpts"></div>' +
+        '<div class="phone-input" aria-hidden="true">Message Maya&hellip;</div></div>' +
+      '<p class="bot-tip" id="botTip" aria-live="polite"></p>' +
+      '<button class="bot-btn" id="botBtn" type="button" aria-expanded="false" aria-controls="phone" aria-label="Open messages with Maya"><span class="ibbi-face" aria-hidden="true">i</span><i class="bot-dot" id="botDot"></i></button>' +
+    '</aside>');
+  const btn = $('botBtn'), phone = $('phone'), log = $('phoneLog'), opts = $('phoneOpts'), tip = $('botTip'), dot = $('botDot');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // if images/maya.png exists (your drawing of Maya), use it as Maya's face
+  const img = new Image();
+  img.onload = function () {
+    if (S.eye) return;                                    // the eye has opened: keep the eye
+    document.querySelectorAll('.ibbi-face').forEach(function (f) { f.style.backgroundImage = 'url(' + img.src + ')'; f.textContent = ''; f.classList.add('has-img'); });
+  };
+  img.onerror = function () { img.onerror = null; img.src = 'images/ibbi.png'; };       // (the old file name still works)
+  img.src = 'images/maya.png';
+
+  // after the eye animation her icon opens: a red eye whose pupil follows the cursor
+  const EYE = '<svg viewBox="0 0 58 58" width="100%" height="100%" aria-hidden="true"><path d="M5 29Q29 6 53 29Q29 52 5 29Z" fill="#fff"/><g class="ie-p"><circle cx="29" cy="29" r="11" fill="#f00"/><circle cx="29" cy="29" r="5.5" fill="#000"/><circle cx="26" cy="26" r="1.8" fill="#fff"/></g><path fill-rule="evenodd" d="M0 0H58V58H0Z M5 29Q29 6 53 29Q29 52 5 29Z" fill="#000"/></svg>';
+  let eyeOn = false;
+  function openEye() {
+    S.eye = true; save();
+    document.querySelectorAll('.ibbi-face').forEach(function (f) { f.style.backgroundImage = 'none'; f.style.background = '#000'; f.style.borderRadius = '50%'; f.style.overflow = 'hidden'; f.innerHTML = EYE; });
+    if (eyeOn) return;
+    eyeOn = true;
+    document.addEventListener('pointermove', function (e) {
+      document.querySelectorAll('.ibbi-face').forEach(function (f) {
+        const p = f.querySelector('.ie-p'), r = f.getBoundingClientRect();
+        if (!p || !r.width) return;
+        const dx = Math.max(-1, Math.min(1, (e.clientX - r.left - r.width / 2) / 250)), dy = Math.max(-1, Math.min(1, (e.clientY - r.top - r.height / 2) / 250));
+        p.style.transform = 'translate(' + dx * 10 + 'px,' + dy * 3.5 + 'px)';
+      });
+    });
+  }
+  if (S.eye) openEye();
+  // the eye sequence is over: her icon opens, and from here she is suspicious (but still insists it is all real)
+  function afterEye(yes) {
+    tip.classList.remove('show'); stage('done'); openEye(); S.eyed = true; save();
+    if (yes) markJoined();
+    say(AFTER_EYE);
+  }
+
+  /* ---------- the conversation ---------- */
+  function bubble(text, me) {
+    const p = document.createElement('p');
+    if (me) p.className = 'me';
+    p.textContent = text;
+    log.appendChild(p);
+    log.scrollTop = log.scrollHeight;
+    return p;
+  }
+  S.log.forEach(function (m) { bubble(m[0], m[1]); });          // the history from earlier pages
+  function remember(text, me) { S.log.push([text, !!me]); if (S.log.length > 60) S.log.shift(); save(); }
+
+  // the speech bubble beside her button (used while the box is closed)
+  let hideT;
+  function showTip(text) {
+    tip.textContent = text; tip.classList.add('show'); dot.hidden = false;
+    clearTimeout(hideT); hideT = setTimeout(function () { tip.classList.remove('show'); }, TIP_FOR);
+  }
+
+  // how suspicious she is, 0 to 1 (the chime gets stranger the higher it is; the same idea as the vignette in js/vignette.js)
+  const SUSPICION = { new: 0, busy: 0.12, popup: 0.2, suspicious: 0.5, captcha: 0.5, free: 0.6, alert: 0.8, eye: 0.9, done: 1 };
+  function suspicion() { const v = SUSPICION[S.stage]; return v === undefined ? 0 : v; }
+
+  /* ---------- her words next to the cursor ----------
+     Only while the visitor is IGNORING her. When she says IGNORE_LINE ("...are you ignoring me..?", one of the nudges) her words start to appear right next to the
+     cursor, following it around, instead of in the corner. When she is not talking there is a "..." beside the cursor. The moment the visitor talks to her
+     (opens her messages or picks something to say) it stops and she goes back to the corner. (Phones have no cursor, so they keep the corner bubble.) */
+  const CURSOR_LAG = 0.16;      // how lazily it follows the cursor (1 = glued to it, smaller = drifts behind, like it is stalking them)
+  const CURSOR_HOLD = 2200;     // ms a line stays next to the cursor after it has been read, before it goes back to "..."
+  const fine = matchMedia('(pointer: fine)').matches;
+  const cur = document.createElement('div');
+  cur.className = 'maya-cur'; cur.setAttribute('aria-hidden', 'true'); cur.hidden = true; cur.textContent = '...';
+  document.body.appendChild(cur);
+  let cx = innerWidth / 2, cy = innerHeight / 2, tx = cx, ty = cy, haveMouse = false, curUntil = 0, curLoop = 0;
+  addEventListener('pointermove', function (e) { tx = e.clientX; ty = e.clientY; haveMouse = true; }, { passive: true });
+  const cursorOn = function () { return fine && haveMouse && !!S.ignoring; };
+  function curDraw() {
+    cx += (tx - cx) * (reduce ? 1 : CURSOR_LAG); cy += (ty - cy) * (reduce ? 1 : CURSOR_LAG);
+    const w = cur.offsetWidth, h = cur.offsetHeight, near = 18 - 8 * suspicion();                 // closer to the cursor the more suspicious
+    const x = cx + near + w > innerWidth - 6 ? cx - near - w : cx + near;                       // flips to the other side at the edge of the screen
+    const y = cy + near + 6 + h > innerHeight - 6 ? cy - near - h : cy + near + 6;
+    cur.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
+  }
+  function curRefresh() {
+    const on = cursorOn() && phone.hidden, talking = Date.now() < curUntil;
+    if (!on) { cur.hidden = true; return; }
+    if (cur.hidden) { cur.hidden = false; cx = tx; cy = ty; }
+    if (!talking && cur.textContent !== '...') cur.textContent = '...';
+    cur.classList.toggle('talk', talking); cur.classList.toggle('edgy', (S.ignN || 0) >= 3);       // after a few lines of being ignored she gets sharper
+    if (!curLoop) curLoop = requestAnimationFrame(function tick() { curDraw(); curLoop = cur.hidden ? 0 : requestAnimationFrame(tick); });
+  }
+  function cursorSay(text, ms) { cur.textContent = text; curUntil = Date.now() + ms + CURSOR_HOLD; cur.hidden = false; curRefresh(); }
+  setInterval(curRefresh, 300);
+
+  /* ---------- she reacts to the review windows and the certificates on the photos ----------
+     "sus" = she is suspicious of them (they have been through the red eye, or they closed the join popup): she is colder, and a little threatening. */
+  const REVIEW_WARM = ['ahhh take your time reading some reviews from our honoured customers!', 'some people were never seen again after submitting their review', '...must be because they were so happy with the results!'];
+  const REVIEW_COLD = ['...read them carefully.', 'notice how happy they all are.', 'you want to be happy too...right?'];
+  const CORRUPT_WARM = ['oh dear. how unexpected...', 'there must have been an error', "no worries, i'll clean that up"];
+  const CORRUPT_COLD = ['...oh dear.', "don't be like this person.", 'who knows what might happen to you too.'];
+  const CERT_WARM = [                                           // three remarks, as the certificates pile up on the product photos (at 1, then CERT_AT[1], then CERT_AT[2] of them)
+    ['oh! somebody has been putting certificates on our shirts!', 'a real shirt deserves a real certificate.'],
+    ['...there are a lot of them now.', 'but you can never have too much proof!'],
+    ['you can barely see the shirt anymore, can you?', 'that is how real it is.']];
+  const CERT_COLD = [
+    ['...do you see them?', 'every one of them says it is real.'],
+    ['more of them. ...because you keep looking.', 'there is nothing else to find.'],
+    ['you cannot see the shirt anymore.', '...good. there was never anything to see.']];
+  const CERT_AT = [1, 12, 40], CERT_DELAY = 2500;
+  const sus = function () { return !!(S.eyed || S.refused); };
+  // the shop page (js/shop.js): the first shirt sells out the moment someone looks at it. She comments once per visit, and colder when she is suspicious of them.
+  const SOLD_WARM = ['our products must be very popular these days', "they're super exclusive!", '...one of a kind...'];
+  const SOLD_COLD = ['...popular, aren\'t they.', 'funny how fast they go once someone looks at them.', '...one of a kind. just like you were supposed to be.'];
+  const SOLD_DELAY = 1800;   // ms after the first one sells out, before she says it
+  window.addEventListener('realstuf:sold', function () {
+    if (S.soldSaid) return;
+    S.soldSaid = true; save();
+    setTimeout(function () { say(sus() ? SOLD_COLD : SOLD_WARM); }, SOLD_DELAY);
+  });
+
+  // the cookies notification (js/reviews.js): they tried DECLINE or the X and it would not close. She finds that suspicious, more each time.
+  const COOKIE_LINES = [
+    ['...you want to decline?', 'why would you decline? what are you hiding?'],
+    ['...declining again. interesting.', 'we only want to keep an eye on things.'],
+    ['...i see.', 'you are not very good at accepting things, are you.'],
+    ['...']
+  ];
+  window.addEventListener('realstuf:cookies', function (e) {
+    const n = Math.min(e.detail || 1, COOKIE_LINES.length) - 1;
+    setTimeout(function () { say(COOKIE_LINES[n], null, true); }, 500);
+  });
+  window.addEventListener('realstuf:review', function (e) {
+    const cold = sus();
+    if (e.detail === 'read') say(cold ? REVIEW_COLD : REVIEW_WARM, null, true);
+    else if (e.detail === 'corrupt') setTimeout(function () { say(cold ? CORRUPT_COLD : CORRUPT_WARM, null, true); }, 600);
+  });
+  window.addEventListener('realstuf:certs', function (e) {
+    const said = S.certSaid || 0;
+    if (said >= CERT_AT.length || (e.detail || 0) < CERT_AT[said]) return;
+    S.certSaid = said + 1; save();
+    setTimeout(function () { say((sus() ? CERT_COLD : CERT_WARM)[said]); }, CERT_DELAY);
+  });
+
+  // Maya says some lines, one after another, then calls done. Lines wait in a queue, so two things never talk over each other.
+  const queue = []; let busy = false, lastSpoke = Date.now();
+  function say(lines, done, first) { queue[first ? 'unshift' : 'push']({ lines: lines, done: done }); if (!busy) pump(); }   // first = she says it next, ahead of anything waiting
+  function pump() {
+    const job = queue.shift();
+    if (!job) { busy = false; if (!phone.hidden) showOptions(); return; }
+    busy = true; opts.hidden = true;
+    (function next(i) {
+      if (i >= job.lines.length) { if (job.done) job.done(); pump(); return; }
+      const text = job.lines[i], open = !phone.hidden;
+      let dots = null;
+      if (open) { dots = bubble('', false); dots.className = 'typing'; dots.innerHTML = '<i></i><i></i><i></i>'; log.scrollTop = log.scrollHeight; }
+      else { tip.classList.remove('show'); curUntil = 0; }
+      setTimeout(function () {
+        if (dots) dots.remove();
+        remember(text); bubble(text); lastSpoke = Date.now();
+        if (text === IGNORE_LINE) { S.ignoring = true; S.ignN = 0; save(); }
+        if (phone.hidden) { if (cursorOn()) { S.ignN = (S.ignN || 0) + 1; cursorSay(text, READ_BASE + READ_PER * text.length); dot.hidden = false; } else showTip(text); }
+        window.sfx && sfx('ding', suspicion());
+        setTimeout(function () { next(i + 1); }, READ_BASE + READ_PER * text.length);     // time to read it
+      }, reduce ? 0 : open ? TYPE_BASE + TYPE_PER * text.length : TIP_GAP);
+    })(0);
+  }
+
+  function showOptions() {
+    opts.textContent = '';
+    const SET = S.eyed ? CHAT_ANXIOUS : CHAT;
+    SET.forEach(function (c, i) {
+      if (S.used.indexOf((S.eyed ? 100 : 0) + i) > -1) return;
+      if (c.go === '#join' && hasJoined()) return;          // they already joined: no more "I want to join"
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = c.send;
+      b.addEventListener('click', function () { send(c, (S.eyed ? 100 : 0) + i); });
+      opts.appendChild(b);
+    });
+    if (opts.children.length) { opts.hidden = false; log.scrollTop = log.scrollHeight; }   // the options take room from the chat: keep the newest message in view
+  }
+
+  function send(c, i) {
+    if (busy) return;
+    S.used.push(i); lastMaya = Date.now(); S.ignoring = false; save();
+    if (S.stage === 'new') stage('busy');                // they answered Maya, so she stops pestering
+    window.sfx && sfx('click');
+    remember(c.send, true); bubble(c.send, true);
+    const sus = (S.eyed || (S.refused && !hasJoined())) && c.sus;       // suspicious voice ONLY if they closed the popup (refused the identity check) and haven't joined since                        // after the popup was closed she answers with suspicion instead
+    const after = hasJoined() && !S.eyed && c.afterJoin;               // members get their own, friendly answer (and no join popup)
+    say(sus ? c.sus : after || c.reply, function () {
+      if (c.go) { const t = document.querySelector(c.go); if (t) t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' }); }
+      if (c.then && !sus && !after) c.then();
+      if (c.watch && !S.watched) { S.watched = true; startWatch(); }
+    });
+  }
+
+  /* ---------- opening and closing the phone ---------- */
+  function setOpen(open) {
+    phone.hidden = !open;
+    btn.setAttribute('aria-expanded', open);
+    document.body.classList.toggle('bot-open', open);
+    if (!open) return;
+    tip.classList.remove('show');
+    dot.hidden = true;
+    log.scrollTop = log.scrollHeight;
+    if (!S.asked) { S.asked = true; save(); say(S.log.length ? [ASK] : [GREETING, ASK]); } else if (!busy) showOptions();
+  }
+
+  let lastMaya = 0;                                    // the last time the visitor touched Maya
+  btn.addEventListener('click', function () { lastMaya = Date.now(); S.ignoring = false; save(); window.sfx && sfx('click'); setOpen(phone.hidden); });
+  $('phoneX').addEventListener('click', function () { setOpen(false); btn.focus(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !phone.hidden) setOpen(false); });
+
+  /* ---------- the shop is locked until they have joined ---------- */
+  // ONLY joining unlocks it (the "I'm not a robot" box does not). Locked: the top-bar links, the products and their hearts, the icons, BROWSE HERE, Scroll >> and the page numbers.
+  const LOCKED = '.nav li, .card, .icons, .btn, .scrollhint, .pager button, .strip img';
+  const unlocked = function () { return hasJoined(); };
+  let gating = false;
+  // every popup goes through here, so Maya can count them: the third one is the escalating popup
+  function openPopup() {
+    if (!window.openJoinPopup) return;
+    S.popups = (S.popups || 0) + 1; save();
+    openJoinPopup({ escalate: S.popups >= POPUP_ESCALATE_AT });
+  }
+  document.addEventListener('click', function (e) {
+    const hit = e.target.closest(LOCKED);
+    if (!hit || unlocked()) return;
+    e.preventDefault(); e.stopPropagation();                       // stops the page from opening the product
+    if (gating || joining || (window.joinPopupOpen && joinPopupOpen())) return;
+    gating = true;
+    S.gates = (S.gates || 0) + 1; save();                          // how many times they have tried: each time she is more annoyed
+    const line = S.gates === 1 && sus() ? GATE_FIRST_COLD : GATE_LINES[Math.min(S.gates, GATE_LINES.length) - 1];
+    say([line], function () { gating = false; openPopup(); }, true);
+  }, true);
+
+  /* ---------- the story ---------- */
+  // 1. the visitor hasn't answered Maya: she greets, nudges, and the last nudge starts the eye
+  function nudge(gap) {
+    const last = S.n >= NUDGES.length;
+    setTimeout(function () {
+      if (S.stage !== 'new') return;
+      if (last) { stage('eye'); window.startEyeVerify && startEyeVerify(afterEye); return; }
+      S.n++; save(); say([NUDGES[S.n - 1]], nudge);
+    }, last ? EYE_AFTER : gap || NUDGE_EVERY);
+  }
+
+  // 1b. they asked to browse or join, then go quiet: she insists the products are real; if they still ignore her, back to the nudges
+  let lastAct = Date.now();
+  ['mousemove', 'keydown', 'scroll', 'wheel', 'click', 'touchstart'].forEach(function (ev) {
+    addEventListener(ev, function () { lastAct = Date.now(); }, { passive: true, capture: true });
+  });
+  const joined = function () { try { return sessionStorage.getItem('realStuf.joined') === '1'; } catch (e) { return false; } };
+
+  function startWatch() {
+    S.watch = true; save();
+    (function wait() {
+      if (S.stage !== 'busy') { S.watch = false; save(); return; }                 // the story moved on
+      if (Date.now() - lastAct < IDLE_FOR) { setTimeout(wait, 1000); return; }    // still doing things
+      S.watch = false; save();
+      const t0 = Date.now();
+      say(WATCH, function () {
+        setTimeout(function () {
+          if (S.stage !== 'busy' || lastMaya > t0 || joined()) return;             // they answered her, or they joined
+          stage('new'); nudge(RESUME_GAP);                                                 // she picks the nudges up again
+        }, IGNORE_FOR);
+      });
+    })();
+  }
+
+  // 2. the popup is closed: Maya is suspicious, leaves them alone for a while, then the "I'm not a robot" box
+  window.addEventListener('realstuf:popup', function (e) {
+    if (e.detail === 'open' && (S.stage === 'new' || S.stage === 'busy')) stage('popup');
+    if (e.detail === 'join') beginJoin();
+    if (e.detail === 'close' && early()) { S.refused = true; stage('suspicious'); say(AFTER_CLOSE, armCaptcha); }
+    else if (e.detail === 'close' && S.stage === 'suspicious') armCaptcha();             // closed another popup meanwhile: the box waits for her to finish again
+  });
+
+  // the "I'm not a robot" box comes CAPTCHA_AFTER ms after she has finished talking and no popup is up (if she speaks again or a popup opens, the wait starts over)
+  let capT = 0;
+  function armCaptcha() {
+    clearTimeout(capT);
+    const blocked = function () { return busy || gating || (window.joinPopupOpen && joinPopupOpen()); };
+    (function wait() {
+      if (S.stage !== 'suspicious') return;
+      if (blocked()) { capT = setTimeout(wait, 300); return; }
+      capT = setTimeout(function () {
+        if (S.stage !== 'suspicious') return;
+        if (blocked()) { wait(); return; }
+        boxStep();
+      }, CAPTCHA_AFTER);
+    })();
+  }
+  function boxStep() {
+    // the standalone "I'm not a robot" box is removed: straight to free browsing (S.clicks = 1 as the box used to leave it)
+    stage('free'); S.clicks = 1; save(); say([FREE]);          // (the review windows only come once they have joined)
+  }
+
+  // 3. free to browse: after CLICKS_TO_ALERT clicks, the laptop alert, then the black countdown and the eye
+  document.addEventListener('click', function (e) {
+    if (S.stage !== 'free' || e.target.closest('#bot, .rv-win')) return;   // clicks inside Maya or a review window do not count
+    S.clicks++; save();
+    if (S.clicks >= CLICKS_TO_ALERT) { stage('alert'); setTimeout(alertStep, ALERT_AFTER); }
+  }, true);
+
+  function reviews() { if (window.showReviews) showReviews(); else console.warn('Maya: showReviews() is missing. Is js/reviews.js loaded on this page (before assistant.js)?'); }
+  function need(fn, file) { if (window[fn]) return true; console.warn('Maya: ' + fn + '() is missing. Is js/' + file + ' loaded on this page (before assistant.js)?'); return false; }
+
+  function alertStep() {
+    need('showAlert', 'checks.js') && showAlert({ title: ALERT.title, text: ALERT.native ? ALERT.text : '', button: ALERT.button, native: ALERT.native, onClick: function () {
+      stage('eye');
+      window.startEyeVerify && startEyeVerify(afterEye);
+    } });
+  }
+
+  // a few handles for js/insist.js (the site's insisting): what stage we're in, is she busy, and a way to make her speak
+  window.maya = window.ibbi = { say: say, stage: function () { return S.stage; }, busy: function () { return busy; }, eyed: function () { return !!S.eyed; }, };
+
+  // the idle loop, and it escalates. While the visitor stays quiet (busy / free stages):
+  //   1. her first 2 comments are about how real everything is (IDLE_LINES[0], [1])
+  //   2. then the NUDGES, one by one (hello? / stop looking around / are you a bot...)
+  //   3. then the eye animation. After it ('done') she only goes back to the "it's all real" comments, so it never repeats.
+  // Any mouse, key or scroll movement starts the quiet spell over.
+  let lastIdle = 0;
+  setInterval(function () {
+    const ok = S.stage === 'free' || S.stage === 'done' || (S.stage === 'busy' && !S.watch);   // 'busy' = they chose an option; the watch above handles the first quiet spell
+    if (!ok || busy || joining || document.hidden) return;
+    const now = Date.now();
+    if (now - lastAct < IDLE_TALK || now - lastSpoke < IDLE_GAP) return;
+    if (lastAct > lastIdle) S.idleN = 0;                       // they did something since her last comment: a new quiet spell
+    lastIdle = now;
+    const n = S.idleN || 0, k = n - 2;
+    S.idleN = n + 1; save();
+    if (S.stage === 'done') { const L = S.eyed ? IDLE_SUS : IDLE_LINES; S.idleI = ((S.idleI || 0) + 1) % L.length; say([L[S.idleI]]); }
+    else if (n < 2) say([IDLE_LINES[n]]);
+    else if (k < NUDGES.length) {
+      say([NUDGES[k]]);
+      if (k === NUDGES.length - 1) setTimeout(function () {         // the last nudge is "authenticating now...": then the eye
+        if (lastAct > now || S.stage === 'eye' || S.stage === 'done') return;
+        stage('eye'); S.idleN = 0; save();
+        window.startEyeVerify && startEyeVerify(afterEye);
+      }, EYE_AFTER + 1500);
+    }
+  }, 1000);
+
+  /* ---------- a page opens: pick the story up where it was ---------- */
+  // the review windows are due (they joined, but clicked into another page before the windows could open): they open here, as soon as they were due
+  (function () {
+    let at = 0, shownAlready = true;
+    try { at = +sessionStorage.getItem('realStuf.reviewsAt') || 0; shownAlready = !!sessionStorage.getItem('realStuf.reviews'); } catch (e) {}
+    if (at && !shownAlready && hasJoined() && !joining) setTimeout(function () { reviews(); }, Math.max(1200, at - Date.now()));
+  })();
+  setTimeout(function () {
+    if (S.stage === 'new') {
+      if (!S.greeted) { S.greeted = true; save(); say([GREETING], nudge); } else nudge();
+    } else if (S.stage === 'busy' && S.watch) startWatch();
+    else if (S.stage === 'suspicious') armCaptcha();
+    else if (S.stage === 'captcha') boxStep();           // the box was still up when they left: bring it back
+    else if (S.stage === 'alert') alertStep();
+  }, TIP_AFTER);
+})();

@@ -1,0 +1,115 @@
+/* =====================================================
+   paranoia.js : once Maya is suspicious of the visitor (after the eye), the product and shop pages make her NERVOUS:
+   she thinks they have noticed something. Load it on product.html and shop.html (after assistant.js).
+     - lingering on a product / the 3D shirt           -> "what are you still looking at?..."
+     - turning the 3D shirt to its back                -> it snaps to the front: "there's nothing on the back."
+     - right-click                                      -> "nothing to inspect here."
+     - the cursor heading for the browser's tab bar     -> "wait, where are you going?"
+     - "1 out of 1 sold" vs "316 results"               -> she notices, and explains it badly
+     - product page only: a "39 people viewing" badge that is then erased
+   All the wording is a FIRST DRAFT.
+   ===================================================== */
+(function () {
+  /* ---------- the wording ---------- */
+  const DWELL_LINES = ['what are you still looking at?...', 'have you found something....?', 'you have been looking at that a while. it is real. ...obviously.', 'what are you looking for?...'];
+  const BACK_LINES  = ['there is nothing on the back.'];
+  const MENU_LINES  = ['nothing to inspect here.'];
+  const EXIT_LINES  = ['wait, where are you going?', 'No need to search us up! we swear!'];
+  // she notices 1 out of 1 sold vs 316 results, and tries to explain it (badly)
+  const MATH_LINES  = ['...hold on.', '"1 out of 1 sold." and "316 results."', 'those are different. that is because each one is the only one. 316 only-ones.', 'see? it adds up. ...it adds up.', '(it adds up.)'];
+  const VIEWERS     = ['39 people viewing this product right now', '38 have been erased... its just you now :)'];
+
+  /* ---------- the knobs (ms) ---------- */
+  const DWELL_FOR   = 5000;     // hovering the same product this long
+  const GAP         = 20000;    // at least this long between two of her dwell comments
+  const MATH_AFTER  = 6000;     // the second of the two pages is open this long before she notices
+  const VIEWERS_AT  = 4500;     // the badge appears this long after the product page opens
+  const VIEWERS_SWAP = 5000;    // and changes to the second message this long later
+  const VIEWERS_GONE = 8000;    // and fades away this long after that
+
+  const anxious = function () { return window.maya && maya.eyed(); };
+  const say = function (lines) { if (window.maya && !maya.busy()) maya.say(lines.slice()); };
+  const pick = function (a) { return [a[Math.floor(Math.random() * a.length)]]; };
+
+  /* ---------- lingering ---------- */
+  let lastDwell = 0, dwellT = 0, dwellOn = null;
+  const DWELL_SEL = '.pdp-photos img, .shop-grid .card, .shop-hero .shirt3d, .pdp-info .title, .pdp-info .price';
+  document.addEventListener('mouseover', function (e) {
+    const el = e.target.closest && e.target.closest(DWELL_SEL);
+    if (el === dwellOn) return;
+    clearTimeout(dwellT); dwellOn = el;
+    if (!el) return;
+    dwellT = setTimeout(function () {
+      if (!anxious() || Date.now() - lastDwell < GAP) return;
+      lastDwell = Date.now(); say(pick(DWELL_LINES));
+    }, DWELL_FOR);
+  });
+
+  /* ---------- the shirt's back (shop-shirt.js sends this) ---------- */
+  let lastBack = 0;
+  window.addEventListener('realstuf:shirtback', function () {
+    if (Date.now() - lastBack < 12000) return;
+    lastBack = Date.now(); say(BACK_LINES);
+  });
+
+  /* ---------- right-click ---------- */
+  let lastMenu = 0;
+  document.addEventListener('contextmenu', function (e) {
+    if (!anxious()) return;
+    e.preventDefault();
+    if (Date.now() - lastMenu < 5000) return;
+    lastMenu = Date.now(); say(MENU_LINES);
+  });
+
+  /* ---------- the cursor leaves through the top of the window (towards the tab bar) ---------- */
+  let lastExit = 0;
+  document.addEventListener('mouseout', function (e) {
+    if (e.relatedTarget || e.clientY > 0 || !anxious()) return;
+    if (Date.now() - lastExit < 40000) return;
+    lastExit = Date.now(); say(EXIT_LINES);
+  });
+
+  /* ---------- "1 out of 1 sold" and "316 results": whichever page they see second, she notices ---------- */
+  (function () {
+    const mark = document.querySelector('.pdp') ? 'realStuf.sawSold' : document.querySelector('.shop-head') ? 'realStuf.sawResults' : null;
+    if (!mark) return;
+    try { sessionStorage.setItem(mark, '1'); } catch (e) {}
+    setTimeout(function () {
+    (function tryMath(n) {
+      let both = false, done = false;
+      try { both = sessionStorage.getItem('realStuf.sawSold') && sessionStorage.getItem('realStuf.sawResults'); done = sessionStorage.getItem('realStuf.mathDone'); } catch (e) {}
+      if (!both || done || !anxious()) return;
+      if (window.maya && maya.busy()) { if (n < 12) setTimeout(function () { tryMath(n + 1); }, 2500); return; }   // she is already talking: try again in a moment
+      try { sessionStorage.setItem('realStuf.mathDone', '1'); } catch (e) {}
+      say(MATH_LINES);
+    })(0);
+    }, MATH_AFTER);
+  })();
+
+  /* ---------- product page only: the "people viewing" badge ---------- */
+  if (document.querySelector('.pdp')) {
+    let seen = false;
+    try { seen = sessionStorage.getItem('realStuf.viewers') === '1'; } catch (e) {}
+    if (!seen) setTimeout(function () {
+      try { sessionStorage.setItem('realStuf.viewers', '1'); } catch (e) {}
+      const b = document.createElement('div');
+      b.className = 'viewers'; b.setAttribute('role', 'status');
+      b.innerHTML = '<i class="viewers-dot"></i><span></span>';
+      document.body.appendChild(b);
+      const t = b.querySelector('span'); t.textContent = VIEWERS[0];
+      requestAnimationFrame(function () { requestAnimationFrame(function () { b.classList.add('show'); }); });
+      window.sfx && sfx('chime');
+      setTimeout(function () {                                   // erased: the second message is typed out
+        window.sfx && sfx('static');
+        t.textContent = ''; b.classList.add('erased');
+        let i = 0;
+        (function type() {
+          if (i >= VIEWERS[1].length) { setTimeout(function () { b.classList.remove('show'); setTimeout(function () { b.remove(); }, 800); }, VIEWERS_GONE); return; }
+          const ch = VIEWERS[1][i++]; t.textContent += ch;
+          if (window.sfx && ch !== ' ') sfx('key');
+          setTimeout(type, ch === '.' ? 45 * 2.5 : 45 + Math.random() * 36 - 18);
+        })();
+      }, VIEWERS_SWAP);
+    }, VIEWERS_AT);
+  }
+})();

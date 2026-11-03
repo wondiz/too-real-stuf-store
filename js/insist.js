@@ -1,0 +1,137 @@
+/* =====================================================
+   insist.js : the website insisting it is real. Load it AFTER assistant.js, on every page.
+   It is paced by Maya's story stage, so the first signs are quiet and it gets louder:
+     calm (new / busy)         card labels (home.js), the announcement bar's first lines, the search box and icons
+     suspicious and after      the announcement bar's later lines, Maya's remarks when you linger or click
+     free (past the robot box) the tab title when you leave, extra lines marked data-from="free"
+   Anything in your HTML with  data-from="suspicious"  (or "free" ...)  stays hidden until that stage.
+   All the wording is a FIRST DRAFT.
+   ===================================================== */
+(function () {
+  /* ---------- the wording ---------- */
+  const ANNOUNCE = [                       // [first stage it can show in, text]. The bar cycles through the ones that are unlocked.
+    ['new',        'Join the Real Stuf. Community and get 15% off your next order'],
+    ['new',        'Real products only.'],
+    ['suspicious', 'No fakes. We checked.'],
+    ['free',       'You can trust us. Please.']
+  ];
+  const AWAY_TITLE = "come back. it's real.";     // the tab's title when they switch away (free stage only)
+  const REMARKS = {                              // Maya's remarks (suspicious stage until the eye)
+    card:    ["that one's real. all of them are.", 'yes, that one too. real.', '...you keep looking at those.'],   // one line each time she remarks, in order
+    returns: ['why would you need to return something real?'],
+    legal:   ["you don't need to read that. it's standard."]
+  };
+  const SEARCH = {                               // the search box (just left of the magnifying glass)
+    none:    function (q) { return 'no results for "' + q + '". we only sell the real thing.'; },
+    fake:    "we don't sell that.",
+    fakeSus: "we don't sell that. who told you we did?"
+  };
+  const COLLECTION = "'I'm the Real One' Collection";   // searching anything with "real" in it finds this
+  const ICONS = {                                // the other icons (wishlist, account, bag): they answer instead of doing nothing
+    wish:    ['your wishlist is empty. everything you save will be real.', 'your wishlist is empty. ...everything you save will be real.'],   // [calm, suspicious]
+    account: ['you are not signed in. you can trust us with your details.', 'you are not signed in. ...you are real, though. right?'],
+    bag:     ['your bag is empty. everything that goes in it is real.', 'your bag is empty. nothing in it could be fake. nothing is in it.']
+  };
+
+  /* ---------- the tuning knobs (ms) ---------- */
+  const ANNOUNCE_EVERY = 9000;   // the bar changes line this often
+  const DWELL = 1500;            // lingering on a card this long makes Maya remark
+  const REMARK_GAP = 10000;      // at least this long between two remarks (of any kind)
+  const ICON_ORDER = ['search', 'wish', 'account', 'bag'];   // the icons picture is split into equal parts, left to right: change this if it has another order
+
+  const ORDER = ['new', 'busy', 'popup', 'suspicious', 'captcha', 'free', 'alert', 'eye', 'done'];
+  const stage = function () { return window.ibbi ? ibbi.stage() : 'new'; };
+  const reached = function (s) { return ORDER.indexOf(stage()) >= ORDER.indexOf(s); };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- things marked data-from="stage" appear once that stage is reached ---------- */
+  function gate() { document.querySelectorAll('[data-from]').forEach(function (el) { el.hidden = !reached(el.dataset.from); }); }
+  gate();
+  window.addEventListener('realstuf:stage', gate);
+
+  /* ---------- the tab title ---------- */
+  const TITLE = document.title;
+  document.addEventListener('visibilitychange', function () { document.title = document.hidden && reached('free') ? AWAY_TITLE : TITLE; });
+
+  /* ---------- the announcement bar ---------- */
+  const bar = document.querySelector('.announce');
+  const raw = bar && Array.prototype.find.call(bar.childNodes, function (n) { return n.nodeType === 3 && n.nodeValue.trim(); });
+  if (raw) {
+    const text = document.createElement('span');                  // only this fades, so the grey bar stays put
+    text.className = 'ann'; text.textContent = raw.nodeValue.trim();
+    bar.replaceChild(text, raw);
+    let i = 0;
+    setInterval(function () {
+      const open = ANNOUNCE.filter(function (a) { return reached(a[0]); });
+      if (open.length < 2) return;
+      i = (i + 1) % open.length;
+      bar.classList.add('swap');
+      setTimeout(function () { text.textContent = open[i][1]; bar.classList.remove('swap'); }, reduce ? 0 : 400);
+    }, ANNOUNCE_EVERY);
+  }
+
+  /* ---------- Maya's remarks: once each, never close together, never over a popup or the eye ---------- */
+  let last = 0; const said = {};
+  function remark(key) {
+    if ((said[key] || 0) >= REMARKS[key].length || Date.now() - last < REMARK_GAP || !reached('suspicious') || reached('eye')) return;
+    if (!window.ibbi || ibbi.busy() || document.querySelector('iframe, .chk, .eye.show')) return;
+    last = Date.now();
+    const n = said[key] || 0; said[key] = n + 1;
+    ibbi.say([REMARKS[key][n]]);
+  }
+
+  let dwell;
+  document.addEventListener('mouseover', function (e) {
+    clearTimeout(dwell);
+    if (e.target.closest && e.target.closest('.card')) dwell = setTimeout(function () { remark('card'); }, DWELL);
+  });
+  document.addEventListener('mouseout', function () { clearTimeout(dwell); });
+
+  document.querySelectorAll('footer .cols a').forEach(function (a) {
+    const t = a.textContent;
+    if (a.getAttribute('href') === '#') a.addEventListener('click', function (e) { e.preventDefault(); });   // dead links don't jump to the top
+    if (/return/i.test(t)) a.addEventListener('click', function () { remark('returns'); });
+    if (/terms|privacy/i.test(t)) a.addEventListener('mouseenter', function () { remark('legal'); });
+  });
+
+  /* ---------- the search box and the other icons ---------- */
+  const icons = document.querySelector('.icons'), pic = icons && icons.querySelector('img.retail');
+  if (pic) {
+    const f = document.createElement('form'), out = document.createElement('div');
+    f.className = 'srch'; f.hidden = true;
+    f.innerHTML = '<input type="search" placeholder="Search" aria-label="Search" autocomplete="off">';
+    out.className = 'srch-out'; out.hidden = true; out.setAttribute('aria-live', 'polite');
+    icons.appendChild(f); icons.appendChild(out);
+    const input = f.querySelector('input');
+    let hideT;
+    function show(content) {                                     // content = text, or a function that fills the box
+      out.textContent = '';
+      if (typeof content === 'function') content(out); else out.textContent = content;
+      out.hidden = false;
+      clearTimeout(hideT); hideT = setTimeout(function () { out.hidden = true; }, 8000);
+    }
+    pic.addEventListener('click', function (e) {
+      const r = pic.getBoundingClientRect();
+      const icon = ICON_ORDER[Math.min(ICON_ORDER.length - 1, Math.floor((e.clientX - r.left) / r.width * ICON_ORDER.length))];
+      if (icon === 'search') { f.hidden = !f.hidden; out.hidden = true; if (!f.hidden) input.focus(); return; }
+      f.hidden = true;
+      show(ICONS[icon][reached('suspicious') ? 1 : 0]);
+    });
+    document.addEventListener('click', function (e) { if (!icons.contains(e.target)) out.hidden = true; });
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const q = input.value.trim();
+      if (!q) return;
+      if (/^new( in)?$/i.test(q)) { location.href = 'shop.html?c=new'; return; }          // searching for "new" goes to the shop page
+      if (/fake|counterfeit|knock.?off|copy|replica|not real/i.test(q)) show(reached('suspicious') ? SEARCH.fakeSus : SEARCH.fake);
+      else if (/real/i.test(q)) show(function (box) {              // anything with "real" in it: one result
+        const a = document.createElement('a');
+        a.href = document.getElementById('best') ? '#best' : 'home.html#best';
+        a.textContent = 'click here';
+        a.addEventListener('click', function () { out.hidden = true; f.hidden = true; });
+        box.append('1 result found! ', a, ' to browse the ' + COLLECTION + '!');
+      });
+      else show(SEARCH.none(q));
+    });
+  }
+})();
