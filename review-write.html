@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Write a Review · Real Stuf.™</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inria+Serif:wght@400;700&family=Intel+One+Mono:wght@300;400&family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/review-portal.css">
+  <link rel="stylesheet" href="css/certs.css">     <!-- the window frame pieces (.ct-frame, .ct-title, .ct-x ...) -->
+  <link rel="stylesheet" href="css/eye.css">
+</head>
+
+<body class="rp started">
+
+  <!-- the same moving background as review.html (videos/tv-static.mp4) -->
+  <video class="bgvid" id="bgvid" muted loop playsinline autoplay preload="auto" aria-hidden="true">
+    <source src="videos/tv-static.mp4" type="video/mp4">
+    <source src="videos/tv-static.webm" type="video/webm">
+  </video>
+
+  <div class="desk" id="desk">
+    <section class="rp-win" id="main" aria-label="Write your review">
+      <img class="ct-frame" alt="" src="images/review-frame.png">
+      <div class="ct-body rw-body">
+        <h1 class="rw-h">Write your review</h1>
+        <p class="rw-p" id="intro">Tell future customers what you think of A Real T-shirt. Honesty is encouraged. Falsehoods are not.</p>
+        <textarea class="rw-area" id="text" maxlength="1200" spellcheck="false" aria-label="Your review"></textarea>
+        <div class="rw-row"><p class="rw-status" id="status" aria-live="polite"></p><button class="rp-btn def" id="submit" type="button">Submit</button></div>
+      </div>
+      <div class="ct-title">Write a Review</div>
+      <button class="ct-x" id="xbtn" type="button" aria-label="Close"></button>
+    </section>
+  </div>
+
+  <div class="taskbar">
+    <span class="start"><b>■</b> Real Stuf.</span>
+    <span class="task">Write a Review</span>
+    <span class="tray"><span id="clock">12:00</span></span>
+  </div>
+
+  <div class="scan" aria-hidden="true"></div>
+  <div class="vig" aria-hidden="true"></div>
+
+  <script src="js/sfx.js"></script>
+  <script src="js/eye.js"></script>
+  <script src="js/ending.js"></script>   <!-- the end: red face windows, static, the tab closes -->
+  <script src="js/review-write.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop · Real Stuf.™</title>
+
+  <!-- Fonts: Datatype, Inria Serif, Intel One Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Datatype:wght@200..700&family=Inria+Serif:wght@400;700&family=Intel+One+Mono:wght@300;400&display=swap" rel="stylesheet">
+
+  <!-- mainpage.css = nav, cards and footer (shared with the home page). shop.css = only what is new on this page. -->
+  <link rel="stylesheet" href="css/mainpage.css">
+  <link rel="stylesheet" href="css/shop.css">
+  <link rel="stylesheet" href="css/assistant.css">
+  <link rel="stylesheet" href="css/eye.css">
+  <link rel="stylesheet" href="css/checks.css">
+  <link rel="stylesheet" href="css/insist.css">
+  <link rel="stylesheet" href="css/join.css">
+  <link rel="stylesheet" href="css/reviews.css">
+</head>
+
+<body>
+
+  <!-- =====================================================
+       TOP BAR  (same as the home page)
+       ===================================================== -->
+  <div class="top">
+
+    <div class="announce">
+      Join the Real Stuf. Community and get 15% off your next order
+      <svg class="x" viewBox="0 0 13 13" aria-label="Close"><path d="M1 1 L12 12 M12 1 L1 12" stroke="#000" stroke-width="1.2" fill="none"/></svg>
+    </div>
+
+    <nav class="nav">
+      <a href="home.html"><img class="logo" alt="Real Stuf.™" src="images/brand_logo.svg"></a>
+
+      <ul>
+        <li><a href="shop.html?c=new">NEW IN</a></li>
+        <li><a href="shop.html?c=men">MEN</a></li>
+        <li><a href="shop.html?c=women">WOMEN</a></li>
+        <li><a href="shop.html?c=kids">KIDS</a></li>
+        <li class="sale"><a href="shop.html?c=sale">SALE</a></li>
+      </ul>
+
+      <div class="icons">
+        <img class="retail" alt="Search, wishlist, account and bag" src="images/retail-icons.png">
+      </div>
+    </nav>
+
+  </div>
+
+
+  <main>
+
+    <!-- the heading. shop.js fills in WOMEN / MEN / KIDS / SALE / NEW IN from the address (shop.html?c=women) -->
+    <header class="shop-head">
+      <h1 id="shopTitle">WOMEN</h1>
+      <p>316 results - all one of a kind</p>
+    </header>
+
+    <!-- the shirt: the 3D model Models/tee.glb (js/shop-shirt.js). images/shop-shirt.png is only the backup picture if the model can't load -->
+    <section class="shop-hero" aria-label="The shirt">
+      <p class="tag l">made by real humans!</p>
+      <img class="shirt" alt="A plain white t-shirt" src="images/shop-shirt.png">
+      <canvas class="shirt3d" id="shirt3d" aria-label="A plain white t-shirt, drag to turn it"></canvas>
+      <div class="floor"></div>
+      <p class="tag r">100% real materials</p>
+    </section>
+
+    <!-- the 12 cards (shop.js draws them) -->
+    <section class="shop-grid" id="grid"></section>
+
+    <!-- page numbers -->
+    <nav class="pager" id="pager" aria-label="Pages">
+      <button type="button" data-p="1" class="on">1</button><button type="button" data-p="2">2</button><button type="button" data-p="3">3</button><button type="button" data-p="4">4</button><button type="button" data-p="5">5</button><button type="button" class="next" aria-label="Next page">&gt;&gt;</button>
+    </nav>
+
+  </main>
+
+
+  <!-- =====================================================
+       FOOTER  (same as the home page)
+       ===================================================== -->
+  <footer>
+
+    <img class="brand" alt="Real Stuf.™" src="images/brand_logo.svg">
+
+    <p class="tagline">A real website made by real people for real customers.</p>
+
+    <div class="cols">
+      <div>
+        <h4>HELP</h4>
+        <a href="#">Shipping &amp; Delivery</a>
+        <a href="#">Returns &amp; Refunds </a>
+        <a href="#">Contact Us</a>
+      </div>
+
+      <div>
+        <h4>SERVICES</h4>
+        <a href="#">Customer Care</a>
+        <a href="#">Store Locator</a>
+      </div>
+
+      <div>
+        <h4>LEGAL AREA</h4>
+        <a href="terms.html">Terms &amp; Conditions</a>
+        <a href="#">Privacy Policy </a>
+      </div>
+    </div>
+
+    <div class="soc">
+      <img class="socials" alt="Instagram, TikTok, X and Facebook" src="images/socials.png">
+    </div>
+
+  </footer>
+
+
+  <script src="js/sfx.js"></script>
+  <script src="js/popup.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/join.js"></script>
+  <script src="js/eye.js"></script>
+  <script src="js/checks.js"></script>
+  <script src="js/reviews.js"></script>
+  <script src="js/assistant.js"></script>   <!-- Maya: same corner, same history as the other pages -->
+  <script src="js/vignette.js"></script>   <!-- the dark vignette: darker the more suspicious Maya is -->
+  <script src="js/paranoia.js"></script>
+  <script src="js/insist.js"></script>
+  <script src="js/shop.js"></script>        <!-- this page's own bits -->
+
+  <!-- three.js (the 3D library) comes from a CDN; the model is Models/tee.glb -->
+  <script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  } }
+  </script>
+  <script type="module" src="js/shop-shirt.js"></script>
+
+</body>
+</html>

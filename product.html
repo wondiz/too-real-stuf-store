@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A Real T-shirt · Real Stuf.™</title>
+
+  <!-- Fonts: Datatype, Inria Serif, Intel One Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Datatype:wght@200..700&family=Inria+Serif:wght@400;700&family=Intel+One+Mono:wght@300;400&display=swap" rel="stylesheet">
+
+  <!-- mainpage.css = nav, cards and footer (shared with the home page). product.css = only what is new on this page. The rest is the same as home.html. -->
+  <link rel="stylesheet" href="css/mainpage.css">
+  <link rel="stylesheet" href="css/reviews.css">
+  <link rel="stylesheet" href="css/product.css">
+  <link rel="stylesheet" href="css/assistant.css">
+  <link rel="stylesheet" href="css/certs.css">
+  <link rel="stylesheet" href="css/gate.css">
+  <link rel="stylesheet" href="css/eye.css">
+  <link rel="stylesheet" href="css/checks.css">
+  <link rel="stylesheet" href="css/insist.css">
+</head>
+
+<body>
+
+  <!-- =====================================================
+       TOP BAR  (same as the home page)
+       ===================================================== -->
+  <div class="top">
+
+    <div class="announce">
+      Join the Real Stuf. Community and get 15% off your next order
+      <svg class="x" viewBox="0 0 13 13" aria-label="Close"><path d="M1 1 L12 12 M12 1 L1 12" stroke="#000" stroke-width="1.2" fill="none"/></svg>
+    </div>
+
+    <nav class="nav">
+      <a href="home.html"><img class="logo" alt="Real Stuf.™" src="images/brand_logo.svg"></a>
+
+      <ul>
+        <li><a href="shop.html?c=new">NEW IN</a></li>
+        <li><a href="shop.html?c=men">MEN</a></li>
+        <li><a href="shop.html?c=women">WOMEN</a></li>
+        <li><a href="shop.html?c=kids">KIDS</a></li>
+        <li class="sale"><a href="shop.html?c=sale">SALE</a></li>
+      </ul>
+
+      <div class="icons">
+        <img class="retail" alt="Search, wishlist, account and bag" src="images/retail-icons.png">
+      </div>
+    </nav>
+
+  </div>
+
+
+  <!-- =====================================================
+       THE PRODUCT  (six photos on the left, the details on the right)
+       Photos: export each Figma "image N" layer as images/product-1.png ... product-6.png
+       ===================================================== -->
+  <main class="pdp">
+
+    <div class="pdp-photos">
+      <img alt="A Real T-shirt, flat"            src="images/product-1.png">
+      <img alt="Shoulder and collar, back view"  src="images/product-2.png">
+      <img alt="Collar close-up"                 src="images/product-3.png">
+      <img alt="Worn, full length"               src="images/product-4.png">
+      <img alt="Worn, from behind"               src="images/product-5.png">
+      <img alt="Worn, side on"                   src="images/product-6.png">
+    </div>
+
+    <aside class="pdp-info">
+
+      <a class="back" href="home.html" id="back">&lt;&lt; Back</a>
+
+      <h1 class="title">A Real T-shirt</h1>
+      <p class="price">A$199<span>VAT and GST included</span></p>
+
+      <div class="swatch"><img alt="" src="images/product-4.png"></div>
+      <p class="colour">COLOUR: <b>AUTHENTIC WHITE</b></p>
+
+      <button class="size-btn" id="sizeBtn" type="button">we only sell one true size</button>
+      <button class="restock" type="button" disabled>Currently Restocking!</button>
+      <p class="sold">1 out of 1 in the world sold! Get yours now!</p>
+
+      <!-- The text inside the three sections below is a first draft. Edit it here. -->
+      <div class="acc first">
+        <button class="acc-head" type="button" aria-expanded="false">DESCRIPTIONS
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9 L12 16 L19 9" fill="none" stroke="#000" stroke-width="1.4"/></svg>
+        </button>
+        <p class="acc-body">A real t-shirt. Not a copy. Not a replica. The real one.</p>
+      </div>
+
+      <div class="acc">
+        <button class="acc-head" type="button" aria-expanded="false">DETAILS
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9 L12 16 L19 9" fill="none" stroke="#000" stroke-width="1.4"/></svg>
+        </button>
+        <p class="acc-body">Real cotton. Sewn by real people. Washes exactly like a real shirt would.</p>
+      </div>
+
+      <div class="acc">
+        <button class="acc-head" type="button" aria-expanded="false">SHIPPING AND RETURNS
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9 L12 16 L19 9" fill="none" stroke="#000" stroke-width="1.4"/></svg>
+        </button>
+        <p class="acc-body">Delivered by real couriers. Returns accepted if you can prove it was ever fake. (You can't.)</p>
+      </div>
+
+      <p class="worried">Worried you might have a fake? You do not. Really. Make a review to help future customers!</p>
+      <div class="auth-slot"><button class="auth-btn" type="button">Make a Review</button></div>
+    </aside>
+  </main>
+
+
+  <!-- =====================================================
+       YOU MAY ALSO LIKE  (the same cards as the home page; home.js draws them)
+       ===================================================== -->
+  <section class="best more">
+    <h2>YOU MAY ALSO LIKE</h2>
+    <div class="cards" id="cards"></div>
+    <button class="scrollhint" id="scrollNext" type="button">Scroll &gt;&gt;</button>
+  </section>
+
+
+  <!-- =====================================================
+       FOOTER  (same as the home page)
+       ===================================================== -->
+  <footer>
+
+    <img class="brand" alt="Real Stuf.™" src="images/brand_logo.svg">
+
+    <p class="tagline">A real website made by real people for real customers.</p>
+
+    <div class="cols">
+      <div>
+        <h4>HELP</h4>
+        <a href="#">Shipping &amp; Delivery</a>
+        <a href="#">Returns &amp; Refunds </a>
+        <a href="#">Contact Us</a>
+      </div>
+
+      <div>
+        <h4>SERVICES</h4>
+        <a href="#">Customer Care</a>
+        <a href="#">Store Locator</a>
+      </div>
+
+      <div>
+        <h4>LEGAL AREA</h4>
+        <a href="terms.html">Terms &amp; Conditions</a>
+        <a href="#">Privacy Policy </a>
+      </div>
+    </div>
+
+    <div class="soc">
+      <img class="socials" alt="Instagram, TikTok, X and Facebook" src="images/socials.png">
+    </div>
+
+  </footer>
+
+
+  <script src="js/sfx.js"></script>
+  <script src="js/home.js"></script>        <!-- draws the cards -->
+  <script src="js/popup.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/eye.js"></script>
+  <script src="js/checks.js"></script>
+  <script src="js/reviews.js"></script>     <!-- the review windows: they can now open on any page -->
+  <script src="js/assistant.js"></script>   <!-- Maya: same corner, same history as the home page -->
+  <script src="js/vignette.js"></script>   <!-- the dark vignette: darker the more suspicious Maya is -->
+  <script src="js/certs.js"></script>       <!-- only for the signature + red eye after the second failed gate (gate.js) -->
+  <script src="js/gate.js"></script>        <!-- the "I'm not a robot" boxes that guard the review -->
+  <script src="js/review-game.js"></script>  
+  <script src="js/paranoia.js"></script>
+  <script src="js/insist.js"></script>
+  <script src="js/product.js"></script>     <!-- this page's own bits -->
+  <script src="js/product-certs.js"></script>   <!-- certificates get stuck on the white tee as the photos scroll out of sight -->
+
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Join the Real Stuf. Community</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Datatype:wght@200..700&display=swap" rel="stylesheet">
+  <style>
+    :root { --red: #ff0000; --data: 'Datatype', 'Courier New', monospace; }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { height: 100%; background: transparent; }
+    button { font: inherit; cursor: pointer; }
+
+    /* the dimmed, blurred backdrop (a click on it does nothing: only the X and No thanks close the popup) */
+    .modal { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.4); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+
+    /* the dissolve: the backdrop fades and blurs in first, then the box comes out of the blur */
+    .modal { animation: popBack .8s ease both; }
+    .box   { animation: popBox 1s cubic-bezier(.2, .6, .2, 1) .25s both; }
+    .modal.out { animation: popOut .45s ease forwards; }
+    @keyframes popBack { from { background: rgba(0,0,0,0); -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); } }
+    @keyframes popBox  { from { opacity: 0; filter: blur(8px); transform: scale(.97); } }
+    @keyframes popOut  { to { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .modal, .box, .modal.out { animation: none; } }
+
+    .box { position: relative; width: min(631px, 100%); min-height: 419px; padding: 75px 24px 70px; background: #fff; color: var(--red); text-align: center; display: flex; flex-direction: column; align-items: center; outline: none; }
+    .x { position: absolute; top: 12px; right: 13px; width: 31px; height: 31px; padding: 0; border: 0; background: none; }
+    .x svg { display: block; width: 31px; height: 31px; fill: none; stroke: var(--red); stroke-width: 1.4; }
+    h2 { font: 400 36px/1.2 var(--data); }
+    p  { margin-top: 20px; font: 400 16px/1.3 var(--data); }
+    .join { width: 207px; height: 62px; margin-top: 80px; background: #fff; border: 1px solid var(--red); color: var(--red); font: 400 20px var(--data); }
+    .join:hover, .join:focus-visible { background: var(--red); color: #fff; outline: none; }
+    .no { margin-top: 21px; padding: 0; border: 0; background: none; color: var(--red); font: 400 15px/19px var(--data); }
+    .no:hover, .no:focus-visible { text-decoration: underline; outline: none; }
+
+    /* ESCALATION (the third popup): every "No thanks." or X turns the screen redder and the words worse, until the last screen (the page then throws them out) */
+    .modal { --lvl: 0; }
+    .modal::before { content: ''; position: fixed; inset: 0; background: #ff0a0a; opacity: var(--lvl); transition: opacity .6s ease; pointer-events: none; }
+    .box { z-index: 1; }
+    .box.jolt { animation: jolt .35s steps(5, end); }
+    @keyframes jolt { 20% { transform: translate(-7px, 3px); } 40% { transform: translate(6px, -4px); } 60% { transform: translate(-4px, -2px); } 80% { transform: translate(3px, 3px); } }
+    .modal.final .box { background: transparent; min-height: 0; padding: 0; color: #fff; justify-content: center; }
+    .modal.final .x, .modal.final .join, .modal.final .no { display: none; }
+    .modal.final h2 { color: #fff; font-size: clamp(40px, 7vw, 96px); }
+    .modal.final p { color: #fff; margin-top: 18px; font-size: clamp(20px, 3vw, 36px); }
+    /* the very last screen: plain red, white typed words in the middle (same look as the other red typed screens) */
+    .modal.typed .box { width: min(900px, 86vw); text-align: center; }
+    .modal.typed h2, .modal.typed p:not(.ty) { display: none; }
+    .ty { margin: 0; font: 400 clamp(22px, 3.4vw, 46px)/1.5 var(--data); color: #fff; }
+    .ty.typing::after { content: ""; display: inline-block; width: .5em; height: .85em; margin-left: .1em; vertical-align: -.05em; background: #fff; animation: tyBlink 1s steps(1) infinite; }
+    @keyframes tyBlink { 50% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .box.jolt { animation: none; } .modal::before { transition: none; } }
+  </style>
+</head>
+<body>
+
+  <div class="modal" id="modal">
+    <div class="box" role="dialog" aria-modal="true" aria-labelledby="t" tabindex="-1" id="box">
+      <button class="x" id="x" type="button" aria-label="Close">
+        <svg viewBox="0 0 31 31"><path d="M4 4 L27 27 M27 4 L4 27"/></svg>
+      </button>
+      <h2 id="t">Join the Real Stuf. Community</h2>
+      <p>real things made by real people for you.</p>
+      <button class="join" id="join" type="button">Join Now</button>
+      <button class="no" id="no" type="button">No thanks.</button>
+    </div>
+  </div>
+
+<script>
+/* popup.html : the "Join the Real Stuf. Community" popup.
+   It works on its own (open popup.html) or inside the overlay made by js/popup.js.
+   It tells the page what happened with postMessage: { realStuf: 'popup', action: 'close' | 'join' }. */
+(function () {
+  const modal = document.getElementById('modal');
+  function tell(action, n) {
+    if (window.parent !== window) window.parent.postMessage({ realStuf: 'popup', action: action, n: n }, '*');
+  }
+
+  // THE THIRD POPUP (js/popup.js opens it as popup.html?esc=1). red = how red the screen behind is, 0 to 1.
+  // (First draft wording: change freely. The last stage has no buttons: after FINAL_WAIT the page throws the visitor out.)
+  const ESC = /[?&]esc=1/.test(location.search);
+  const FINAL_WAIT = 1800;    // ms the last words stay up (after they have been typed) before the leave screen
+  const TYPE_MS = 65;         // ms per letter on the last screen
+  const STAGES = [
+    { red: 0,    heading: 'Join the Real Stuf. Community', sub: 'real things made by real people for you.', join: 'Join Now', no: 'No thanks.' },
+    { red: 0.15, heading: 'Are you sure?',                 sub: 'real people always join.',                 join: 'Join Now', no: 'No thanks.' },
+    { red: 0.35, heading: "you're still here.",            sub: 'we noticed. real people notice too.',      join: 'Join Now', no: 'no thanks' },
+    { red: 0.55, heading: "why won't you join?",           sub: 'only fake things hesitate.',               join: 'JOIN NOW', no: 'no' },
+    { red: 0.8,  heading: 'JOIN US.',                      sub: 'join us. join us. join us.',               join: 'JOIN',     no: 'no.' },
+    { red: 1,    typed: '...if you were going to mess around, what were you even doing here in the first place.', join: '', no: '' }
+  ];
+  let stage = 0, over = false;
+  const box = document.getElementById('box'), joinB = document.getElementById('join'), noB = document.getElementById('no');
+  function typeFinal(text, done) {                       // the last words, typed in the middle of the red screen
+    const ty = document.createElement('p'); ty.className = 'ty typing'; box.appendChild(ty);
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { ty.textContent = text; ty.classList.remove('typing'); done(); return; }
+    let n = 0;
+    (function next() {
+      ty.textContent = text.slice(0, ++n);
+      try { if (text[n - 1] !== ' ') window.parent.sfx && window.parent.sfx('key'); } catch (e) {}
+      if (n >= text.length) { ty.classList.remove('typing'); done(); return; }
+      setTimeout(next, (text[n - 1] === '.' ? TYPE_MS * 3 : TYPE_MS) + Math.random() * TYPE_MS * .6 - TYPE_MS * .3);
+    })();
+  }
+  function render(i) {
+    const st = STAGES[i];
+    if (st.typed) {
+      modal.style.setProperty('--lvl', st.red);
+      modal.classList.add('final', 'typed');
+      typeFinal(st.typed, function () { setTimeout(function () { tell('giveup'); }, FINAL_WAIT); });
+      return;
+    }
+    document.getElementById('t').textContent = st.heading;
+    box.querySelector('p').textContent = st.sub;
+    joinB.textContent = st.join; noB.textContent = st.no;
+    modal.style.setProperty('--lvl', st.red);
+    modal.classList.toggle('final', !st.join && !st.no);
+    if (i >= 2) { box.classList.remove('jolt'); void box.offsetWidth; box.classList.add('jolt'); }
+  }
+  function refuse() {                                    // "No thanks." or the X, in the escalating popup
+    if (over) return;
+    stage++; render(stage); tell('stage', stage);
+    if (stage >= STAGES.length - 1) over = true;           // (the last screen types its words, then tells the page to throw them out)
+  }
+  let leaving = false;
+  function close() {                                    // it dissolves away, then the page is told to remove it
+    if (leaving) return;
+    leaving = true;
+    modal.classList.add('out');
+    setTimeout(function () { tell('close'); if (window.parent === window) { leaving = false; modal.classList.remove('out'); } }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 450);
+  }
+  document.getElementById('x').addEventListener('click', ESC ? refuse : close);
+  document.getElementById('no').addEventListener('click', ESC ? refuse : close);
+  document.getElementById('join').addEventListener('click', function () { tell('join'); });   // no behaviour yet: just tells the page
+  // (a click on the dimmed backdrop no longer closes the popup: only the X and the No thanks button do, so it can't be clicked away by accident)
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !ESC) close(); });
+  document.getElementById('box').focus();
+})();
+</script>
+</body>
+</html>

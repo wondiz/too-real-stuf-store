@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Make a Review · Real Stuf.™</title>
+
+  <!-- VT323 = the old terminal text, Silkscreen = pixel labels, Inria Serif = the window title bars (same as the other windows) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inria+Serif:wght@400;700&family=Intel+One+Mono:wght@300;400&family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/review-portal.css">
+  <link rel="stylesheet" href="css/certs.css">     <!-- the window frame pieces (.ct-frame, .ct-title, .ct-x ...) and the certificate windows -->
+  <link rel="stylesheet" href="css/eye.css">
+  <link rel="stylesheet" href="css/checks.css">
+  <link rel="stylesheet" href="css/join.css">
+</head>
+
+<body class="rp">
+
+  <!-- the moving background: put your video at videos/tv-static.mp4 (webm also works). No video = the plain desk. -->
+  <video class="bgvid" id="bgvid" muted loop playsinline autoplay preload="auto" aria-hidden="true">
+    <source src="videos/tv-static.mp4" type="video/mp4">
+    <source src="videos/tv-static.webm" type="video/webm">
+  </video>
+
+  <!-- =====================================================
+       THE SCREEN: the review happens on an old computer (same look as the old authentication portal),
+       but every window uses your frame picture (images/review-frame.png).
+       ===================================================== -->
+  <div class="desk" id="desk">
+    <div class="ghost" aria-hidden="true"></div>
+
+    <!-- 1. THE START WINDOW: your picture (images/review-start.png) with a real text box and invisible buttons laid over it. -->
+    <section class="rp-win rp-startwin" id="start" aria-label="Make a Review">
+      <img class="rs-img" alt="" src="images/review-start.png">
+      <input class="rs-in" id="serial" type="text" autocomplete="off" spellcheck="false" placeholder=" " aria-label="Your product's serial number">
+      <i class="rs-caret" aria-hidden="true"></i>
+      <p class="rs-status" id="rsStatus">Ready.</p>
+      <button class="rs-hit rs-begin" id="begin" type="button" aria-label="Begin"></button>
+      <button class="rs-hit rs-cancel" id="cancel" type="button" aria-label="Cancel"></button>
+      <button class="rs-hit rs-x" id="startX" type="button" aria-label="Close"></button>
+    </section>
+
+    <!-- =================================================
+         2. THE REVIEW WINDOW: a floating 3D shirt (it changes with every question), the question under it, yes / no.
+         ================================================= -->
+    <section class="rp-win" id="main" aria-label="Review form" hidden>
+      <img class="ct-frame" alt="" src="images/review-frame.png">
+      <div class="ct-body rp-body">
+        <div class="rp-stage" id="stage">
+          <!-- the red eye (images/eye-white.png + eye-pupil.png, the same pictures as the eye screen): a faint background behind the shirt on the "are you alone" question -->
+          <div class="rp-eye" id="eyebg" aria-hidden="true"><div class="rp-eye-wrap"><img class="rp-eye-pupil" alt="" src="images/eye-pupil.png"><img class="rp-eye-white" alt="" src="images/eye-white.png"></div></div>
+          <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="eyeKnock" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 1.3 0 0 -0.1"/></filter></svg>
+          <canvas id="tee" aria-label="A Real T-shirt, turning"></canvas>
+          <p class="rp-cap" id="cap" aria-live="polite"></p>
+        </div>
+        <div class="rp-bar">
+          <div class="rp-top"><span class="rp-label" id="label"></span><span class="rp-dots" id="dots" aria-hidden="true"></span></div>
+          <p class="rp-q" id="q" aria-live="polite"></p>
+          <div class="rp-row"><div class="rp-a" id="answers"></div><p class="rp-s" id="say" aria-live="polite"></p></div>
+        </div>
+      </div>
+      <div class="ct-title">Make a Review</div>
+      <button class="ct-x" id="xbtn" type="button" aria-label="Close"></button>
+    </section>
+  </div>
+
+  <!-- the taskbar: always there, always normal. Except the clock. -->
+  <div class="taskbar">
+    <span class="start"><b>■</b> Real Stuf.</span>
+    <span class="task" id="taskName">Make a Review</span>
+    <span class="tray"><span id="clock">12:00</span></span>
+  </div>
+
+  <div class="scan" aria-hidden="true"></div>
+  <div class="vig" aria-hidden="true"></div>
+
+
+  <script src="js/sfx.js"></script>
+  <script src="js/popup.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/join.js"></script>
+  <script src="js/eye.js"></script>
+  <script src="js/ending.js"></script>   <!-- the end: red face windows, static, the tab closes -->
+    <script src="js/certs.js"></script>           <!-- the certificate windows, the eye warning, the cameras and the agreement (works here without the product page button) -->
+  <script src="js/review-portal.js"></script>  <!-- the review itself -->
+
+  <!-- three.js (the 3D library) comes from a CDN; the model is Models/tee.glb -->
+  <script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  } }
+  </script>
+  <script type="module" src="js/review-tee.js"></script>
+
+</body>
+</html>
