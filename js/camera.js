@@ -17,15 +17,15 @@
   };
 
   window.askCamera = function (fresh) {
-    if (pending) return;
-    if (!fresh) { try { if (sessionStorage.getItem(KEY)) return; } catch (e) {} camAllowed().then(function (ok) { if (ok) ask(false); }); return; }      // only the Start screen is allowed to open the permission box
-    ask(true);
+    if (pending) return pending;
+    if (!fresh) { try { if (sessionStorage.getItem(KEY)) return Promise.resolve(); } catch (e) {} return camAllowed().then(function (ok) { if (ok) return ask(false); }); }      // only the Start button is allowed to open the permission box
+    return ask(true);
   };
   function ask(fresh) {
-    if (pending) return;
+    if (pending) return pending;
     try { if (fresh) sessionStorage.removeItem(KEY); else if (sessionStorage.getItem(KEY)) return; } catch (e) {}
     console.info('camera: asking...');
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { console.warn('camera: not available here (needs https:// or localhost)'); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { console.warn('camera: not available here (needs https:// or localhost)'); return Promise.resolve(); }
     pending = navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }).then(function (stream) {
       const v = document.createElement('video');
       v.muted = true; v.playsInline = true; v.srcObject = stream;
@@ -40,6 +40,7 @@
         stop();
       }).catch(stop);
     }).catch(function (e) { console.warn('camera:', e && e.name); }).then(function () { pending = null; });     // refused or done: either way, stop waiting
+    return pending;
   }
 
   // if the visitor presses Start while the photo is still being taken, wait a moment for it (leaving the page would cancel it)
