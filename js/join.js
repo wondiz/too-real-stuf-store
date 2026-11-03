@@ -1,0 +1,144 @@
+/* =====================================================
+   join.js : the real "join the community" screen. Needs css/join.css.
+   From any page:  startJoin(function (visitor) { ... })      visitor = { name, dob }
+   A black screen, small typed text, two questions: name and date of birth. Then the site reflects it back.
+   The answers are kept in THIS browser only (localStorage), so the site can use them later:
+       getVisitor()  ->  { name: 'Juno', dob: '2004-03-09' }   (or {} if they never joined)
+   Nothing is sent anywhere. All the wording is a FIRST DRAFT.
+   ===================================================== */
+(function () {
+  /* ---------- the wording ---------- */
+  const WELCOME  = 'welcome to the Real Stuf. Community.';
+  const ASK_NAME = 'please enter your preferred (real) name:';
+  const ASK_DOB  = 'date of birth (dd/mm/yyyy):';
+  const THANKS   = function (n) { return 'thank you, ' + n + '.'; };
+  const BORN     = function (d, days) { return 'you were born on ' + d + '. that is ' + days + ' days ago. we counted.'; };
+  const CLOCK    = function (t, late) { return "it's " + t + ' where you are.' + (late ? ' why are you awake?' : ''); };   // late = between 11pm and 5am
+
+  /* ---------- the tuning knobs (ms) ---------- */
+  const SPEED = 45, LINE_GAP = 600, END_HOLD = 3000, FRESH_GAP = 900;
+  const GLITCH_SHOWN = [1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0];   // the glitch at the end: 1 = the glitchy screen shows, 0 = the home page flashes through   // FRESH_GAP: the pause on the empty screen after the city reply
+  const KEY = 'realStuf.visitor';
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let el, col, running = false, finished = null;
+
+  window.getVisitor = function () { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+
+  /* ---------- the screen ---------- */
+  function build() {
+    el = document.createElement('div');
+    el.className = 'jn'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Join the Real Stuf. Community');
+    el.innerHTML = '<div class="jn-col"></div>';
+    document.body.appendChild(el);
+    col = el.firstChild;
+    el.addEventListener('click', function () { const i = col.querySelector('input'); if (i) i.focus(); });   // click anywhere to keep typing
+  }
+
+  function line() { const p = document.createElement('p'); p.className = 'jn-line'; p.appendChild(document.createElement('span')); col.appendChild(p); return p; }
+
+  function type(node, text, done) {                         // the typewriter
+    node.textContent = '';
+    if (reduce) { node.textContent = text; if (done) setTimeout(done, LINE_GAP); return; }
+    node.classList.add('on');
+    let n = 0;
+    (function next() {
+      node.textContent = text.slice(0, ++n);
+      if (window.sfx && text[n - 1] !== ' ') sfx('key');
+      if (n >= text.length) { node.classList.remove('on'); if (done) setTimeout(done, LINE_GAP); return; }
+      setTimeout(next, (text[n - 1] === '.' ? SPEED * 2.5 : SPEED) + Math.random() * SPEED * .8 - SPEED * .4);   // the old typewriter: a longer pause after a full stop, a little random jitter
+    })();
+  }
+
+  function say(text, done) { type(line().firstChild, text, done); }
+
+  // a question: the label is typed, then a box on the same line. check(text) returns the cleaned answer, or null to refuse it (the box shakes)
+  function ask(label, check, done) {
+    const p = line();
+    type(p.firstChild, label, function () {
+      const i = document.createElement('input');
+      i.type = 'text'; i.maxLength = 40; i.autocomplete = 'off'; i.spellcheck = false; i.setAttribute('aria-label', label);
+      p.appendChild(i); i.focus();
+      i.addEventListener('input', function () { window.sfx && sfx('key'); i.style.width = Math.max(2, i.value.length + 1) + 'ch'; });
+      i.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const v = check(i.value.replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim());
+        if (v === null) { i.classList.remove('nope'); void i.offsetWidth; i.classList.add('nope'); return; }
+        const s = document.createElement('span');
+        s.className = 'jn-ans'; s.textContent = i.value.trim();
+        p.replaceChild(s, i);
+        window.sfx && sfx('done');
+        setTimeout(function () { done(v); }, LINE_GAP);
+      });
+    });
+  }
+
+  /* ---------- the answers ---------- */
+  const okName = function (t) { return t.length >= 1 && t.length <= 24 ? t : null; };
+  function okDob(t) {                                       // dd/mm/yyyy, a real date, between 5 and 120 years ago
+    const m = /^(\d{1,2})[\/.\-\s](\d{1,2})[\/.\-\s](\d{4})$/.exec(t);
+    if (!m) return null;
+    const d = new Date(+m[3], +m[2] - 1, +m[1]);
+    if (d.getFullYear() !== +m[3] || d.getMonth() !== +m[2] - 1 || d.getDate() !== +m[1]) return null;
+    const years = (Date.now() - d) / 31557600000;
+    return years >= 5 && years <= 120 ? d : null;
+  }
+
+  /* ---------- the sequence ---------- */
+  window.startJoin = function (onDone) {
+    if (running) return;
+    running = true; finished = onDone;
+    if (!el) build();
+    col.textContent = '';
+    el.classList.add('show');
+    const v = {};
+
+    say(WELCOME, function () {
+      ask(ASK_NAME, okName, function (name) {
+        v.name = name;
+        ask(ASK_DOB, okDob, function (dob) {
+          v.dob = dob.getFullYear() + '-' + String(dob.getMonth() + 1).padStart(2, '0') + '-' + String(dob.getDate()).padStart(2, '0');
+          finish(v, dob);
+        });
+      });
+    });
+  };
+
+  // the screen glitches away to the home page (the same effect as the old "authentication complete" screen)
+  function glitchOut(done) {
+    if (reduce) { el.classList.remove('show'); done(); return; }
+    const rnd = function (a, b) { return a + Math.random() * (b - a); };
+    let i = 0;
+    el.style.transition = 'none';
+    (function tick() {
+      if (i >= GLITCH_SHOWN.length) { el.removeAttribute('style'); el.classList.remove('show'); done(); return; }
+      if (GLITCH_SHOWN[i]) {
+        window.sfx && sfx('static');
+        el.style.visibility = 'visible'; el.style.opacity = 1;
+        el.style.transform = 'translate(' + rnd(-40, 40) + 'px,' + rnd(-6, 6) + 'px) skewX(' + rnd(-10, 10) + 'deg)';
+        el.style.clipPath = 'inset(' + rnd(0, 55) + '% 0 ' + rnd(0, 35) + '% 0)';
+        el.style.filter = Math.random() < .5 ? 'invert(1) hue-rotate(' + rnd(0, 360) + 'deg)' : 'none';
+      } else el.style.visibility = 'hidden';                 // the home page flashes through
+      i++;
+      setTimeout(tick, rnd(60, 130));
+    })();
+  }
+
+  function finish(v, dob) {
+    try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {}
+    const days = Math.floor((Date.now() - dob) / 86400000).toLocaleString('en-AU');
+    const now = new Date(), h = now.getHours();
+    const clock = (h % 12 || 12) + ':' + String(now.getMinutes()).padStart(2, '0') + (h < 12 ? 'am' : 'pm');
+    say(THANKS(v.name), function () {
+      say(BORN(dob.getDate() + ' ' + MONTHS[dob.getMonth()] + ' ' + dob.getFullYear(), days), function () {
+        say(CLOCK(clock, h < 5 || h >= 23), function () {
+          setTimeout(function () {
+            glitchOut(function () { running = false; if (finished) finished(v); });
+          }, END_HOLD);
+        });
+      });
+    });
+  }
+
+})();

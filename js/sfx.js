@@ -1,0 +1,386 @@
+/* =====================================================
+   sfx.js : every sound on the website, made live in the browser (no audio files).
+   Load it FIRST on each page. Other scripts play a sound with:   window.sfx && sfx('name', optionalValue)
+   If this file is missing, nothing breaks, the site is just silent.
+
+   - Browsers only allow sound after the visitor has clicked, tapped or pressed a key once. Until then it stays silent.
+   - Sound is muted while the tab is in the background.
+   - The visitor can mute it with the small SOUND button (the choice is remembered). Hide the button with SFX_BUTTON = false.
+   - Open sounds.html to hear every sound and tune them.
+   ===================================================== */
+(function () {
+  const SFX_BUTTON = true;      // the little "sound on / off" button in the corner
+  const MASTER     = 0.55;      // overall loudness (0 to 1). Everything is quiet on purpose...
+  const LEAVE_LEVEL = 0.22;     // ...the white noise on the LEAVE screen (0 to 1)
+  const FLASH_LEVEL = 0.18;     // ...and on the red "YOU MUST AUTHENTICATE" screen
+  const FLUSH_PITCH = 1400;     // pitch of that white noise: lower = deeper and rumblier (was 6500)
+  const KEY        = 'realStuf.sound';
+  const DRONE_LEVEL = 0.09;    // the low note under the red eye (it follows the cursor): 0.03 was too quiet to hear, 0.09 is clearly there but still soft
+  const HUM_LEVEL  = 0.02;      // the room tone under every page (0 = none, 0.02 = almost inaudible, 0.05 = clearly there). It goes quiet on the black screens and while a shop card is hovered.
+
+  let ctx = null, master = null, noiseBuf = null;
+  let wantDrone = false, muted = false, humTarget = HUM_LEVEL, duckNow = false, humGain = null, droneNodes = null;
+  try { muted = localStorage.getItem(KEY) === 'off'; } catch (e) {}
+
+  function ensure() {
+    if (ctx) return true;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = muted ? 0 : MASTER;
+      master.connect(ctx.destination);
+      ctx.addEventListener('statechange', function () { if (ctx && ctx.state === 'running' && wantDrone) { wantDrone = false; S.drone(true); } });   // sound just became allowed: anything that was waiting starts
+      noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      return true;
+    } catch (e) { ctx = null; return false; }
+  }
+
+  function unlock() {
+    if (!ensure()) return;
+    if (ctx.state === 'suspended' && !document.hidden) {
+      const r = ctx.resume();
+      if (r && r.then) r.then(function () { if (wantDrone) { wantDrone = false; S.drone(true); } });   // the eye opened before they had clicked anything: its low note starts now
+    } else if (wantDrone && ctx.state === 'running') { wantDrone = false; S.drone(true); }
+    applyHum();
+  }
+  ['pointerdown', 'keydown', 'touchstart'].forEach(function (ev) { addEventListener(ev, unlock, { passive: true }); });
+
+  document.addEventListener('visibilitychange', function () {
+    if (!ctx) return;
+    if (document.hidden) ctx.suspend(); else ctx.resume();
+  });
+
+  const live = function () { return ctx && ctx.state === 'running' && !muted; };
+  const rnd = function (a, b) { return a + Math.random() * (b - a); };
+
+  /* ---------- the two building blocks ---------- */
+  // a pitched blip: frequency (slides to `to` if given), length in seconds, loudness, wave
+  function tone(freq, dur, vol, wave, to, when) {
+    if (!live()) return;
+    const t = ctx.currentTime + (when || 0);
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = wave || 'square';
+    o.frequency.setValueAtTime(freq, t);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol || 0.05, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+
+  // a burst of noise through a filter (type: lowpass / bandpass / highpass), optionally sweeping f to f2
+  function noise(dur, vol, type, f, f2, when) {
+    if (!live()) return;
+    const t = ctx.currentTime + (when || 0);
+    const s = ctx.createBufferSource();
+    s.buffer = noiseBuf; s.loop = true;
+    const fl = ctx.createBiquadFilter();
+    fl.type = type || 'bandpass';
+    fl.frequency.setValueAtTime(f || 1000, t);
+    if (f2) fl.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol || 0.05, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(fl); fl.connect(g); g.connect(master);
+    s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
+  }
+
+  /* ---------- the room tone: a hum that the page turns up as it gets worse ---------- */
+  function applyHum() {
+    const level = duckNow ? 0 : humTarget;
+    if (!live() || level <= 0) { if (humGain && ctx) { humGain.gain.cancelScheduledValues(ctx.currentTime); humGain.gain.setValueAtTime(humGain.gain.value, ctx.currentTime); humGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.35); } return; }
+    if (!humGain) {
+      humGain = ctx.createGain();
+      humGain.gain.value = 0;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 180;
+      [50, 100.4].forEach(function (f, i) {
+        const o = ctx.createOscillator();
+        o.type = i ? 'sawtooth' : 'sine';
+        o.frequency.value = f;
+        o.connect(lp); o.start();
+      });
+      lp.connect(humGain); humGain.connect(master);
+    }
+    humGain.gain.cancelScheduledValues(ctx.currentTime);
+    humGain.gain.setValueAtTime(humGain.gain.value, ctx.currentTime);
+    humGain.gain.linearRampToValueAtTime(level, ctx.currentTime + (duckNow ? 0.35 : 1.6));
+  }
+
+  // the hum goes quiet on the black screens (join, the eye, the dead review window) and while a shop card is hovered, then comes back
+  const QUIET_WHEN = '.jn.show, .eye.show, .rv-win.dead, .shop-grid .card:hover';
+  function watchQuiet() {
+    setInterval(function () {
+      let q = false; try { q = !!document.querySelector(QUIET_WHEN); } catch (e) {}
+      if (q !== duckNow) { duckNow = q; applyHum(); }
+    }, 150);
+  }
+  if (document.body) watchQuiet(); else document.addEventListener('DOMContentLoaded', watchQuiet);
+
+  /* ---------- the white noise flush (used by the red screens) ----------
+     a wash of noise with the rumble and the sharp hiss taken off. Returns an object whose stop(fadeSeconds) ends it. */
+  let flushNodes = null;
+  function flush(level) {
+    if (!live()) return null;
+    const t = ctx.currentTime;
+    const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 40;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = FLUSH_PITCH;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(level, t + 0.12);                    // a quick swell, not a slap
+    s.connect(hp); hp.connect(lp); lp.connect(g); g.connect(master);
+    s.start(t);
+    return {
+      stop: function (fade) {
+        const n = ctx.currentTime;
+        g.gain.cancelScheduledValues(n);
+        g.gain.setValueAtTime(Math.max(g.gain.value, 0.0001), n);
+        g.gain.exponentialRampToValueAtTime(0.0001, n + fade);
+        try { s.stop(n + fade + 0.05); } catch (e) {}
+      }
+    };
+  }
+
+  /* ---------- the crying (used by the broken shop) ---------- */
+  const SOB_LEVEL = 0.16;       // how loud each sob is (soft on purpose)
+  const SOB_BED   = 0.04;       // the faint white noise underneath
+  let sobOn = false, sobTimer = null, sobBed = null;
+
+  function sobOnce() {
+    // a sob = 2 to 4 shaky pulses of a "voice" (a buzzing note shaped by two vowel filters) sliding down in pitch, with a breath in front
+    const t = ctx.currentTime, n = 2 + Math.floor(Math.random() * 3), gap = rnd(0.15, 0.2);
+    const f0 = rnd(250, 330), len = 0.25 + n * gap;
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.linearRampToValueAtTime(f0 * 0.7, t + len);
+    const lfo = ctx.createOscillator(), lg = ctx.createGain();       // the voice wobbles
+    lfo.frequency.value = rnd(5, 7); lg.gain.value = 8;
+    lfo.connect(lg); lg.connect(o.frequency);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+    for (let i = 0; i < n; i++) {                                    // each hitch of the breath
+      const s = t + 0.08 + i * gap;
+      g.gain.exponentialRampToValueAtTime(SOB_LEVEL * (1 - i * 0.18), s + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, s + gap * 0.9);
+    }
+    [[700, 5], [1150, 6]].forEach(function (fm) {
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = fm[0]; bp.Q.value = fm[1];
+      o.connect(bp); bp.connect(g);
+    });
+    g.connect(master);
+    o.start(t); lfo.start(t); o.stop(t + len + 0.1); lfo.stop(t + len + 0.1);
+    noise(0.3, 0.04, 'bandpass', 2200, 1000);                        // the shaky breath in
+  }
+  function sobLoop() {
+    clearTimeout(sobTimer);
+    if (!sobOn) return;
+    if (live()) {
+      if (!sobBed) sobBed = flush(SOB_BED);
+      sobOnce();
+    }
+    sobTimer = setTimeout(sobLoop, rnd(2400, 5200));
+  }
+  // The real recording (sounds/sobbing.mp3) plays on a loop. If the file can't be found, the synthesised sobbing above is used instead.
+  const SOB_FILE   = 'sounds/sobbing.mp3?v=3';   // change the number after ?v= whenever you swap the recording, so browsers don't keep playing the old one
+  const SOB_FILE_VOLUME = 0.7;     // how loud the recording is (0 to 1)
+  let sobAudio = null, sobFileOk = true;
+  function sobFilePlay() {
+    if (!sobFileOk) return false;
+    if (!sobAudio) {
+      sobAudio = new Audio(SOB_FILE);
+      sobAudio.loop = true;
+      sobAudio.volume = SOB_FILE_VOLUME;
+      sobAudio.addEventListener('error', function () { console.warn('sfx.js: could not load ' + SOB_FILE + ' (is it in a folder called "sounds" next to your pages?). Using the synthesised crying instead.'); sobFileOk = false; sobAudio = null; if (sobOn) sobLoop(); });
+    }
+    sobAudio.muted = muted;
+    const p = sobAudio.play();
+    if (p && p.catch) p.catch(function () {});                       // blocked until the visitor interacts: retried below
+    return true;
+  }
+  ['pointerdown', 'keydown', 'touchstart'].forEach(function (ev) {
+    addEventListener(ev, function () { if (sobOn && sobAudio && sobAudio.paused && !document.hidden) sobFilePlay(); }, { passive: true });
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!sobAudio) return;
+    if (document.hidden) sobAudio.pause(); else if (sobOn) sobFilePlay();
+  });
+  document.addEventListener('sfxchange', function (e) { if (sobAudio) sobAudio.muted = e.detail.muted; });
+
+  function sobStart() {
+    if (sobOn) return;
+    sobOn = true;
+    if (sobFilePlay()) {
+      // under the recording: only the faint white noise bed (the synthesised sobs stay off)
+      (function bed() { clearTimeout(sobTimer); if (!sobOn || !sobFileOk) return; if (!sobBed && live()) sobBed = flush(SOB_BED); sobTimer = setTimeout(bed, 1000); })();
+    } else sobLoop();
+  }
+  function sobStop() {
+    sobOn = false; clearTimeout(sobTimer);
+    if (sobAudio) sobAudio.pause();
+    if (sobBed) { sobBed.stop(0.5); sobBed = null; }
+  }
+
+  /* ---------- every named sound ---------- */
+  let clockFlip = false;
+  const S = {
+    unlock: unlock,
+
+    // the room tone. level is the loudness of the hum itself (0 = off, 0.03 = faint, 0.07 = clearly there)
+    hum: function (level) { humTarget = level; applyHum(); },
+
+    beep: function (f, ms, vol, wave) { tone(f || 440, (ms || 80) / 1000, vol || 0.02, wave || 'square'); },
+
+    // ---- the home page ----
+    ding:   function (d) {                                                                       // a message from Maya arrives: a short rising three-note text-message chime, like a phone notification.
+      d = Math.max(0, Math.min(1, d || 0));                                                      // d = how suspicious she is (0 to 1): the more, the lower, slower and more wrong it sounds (never higher or shriller)
+      const lower = 1 - 0.55 * d;                                                                // the whole chime sinks as she gets more suspicious: down to about half the pitch
+      let notes = [[1319, 0], [1568, 0.1], [2093, 0.2]];
+      if (d > 0.85) notes = [[1568, 0], [1319, 0.16], [1047, 0.34], [523, 0.55]];                // at the worst it falls instead of rises, and drags
+      notes.forEach(function (n) {
+        const f = n[0] * lower * (1 - d * rnd(0, 0.06)), t = Math.max(0, n[1] + (d > 0.3 ? rnd(-0.02, 0.05) * d : 0));   // drifts flat, and the timing wobbles
+        if (d > 0.6 && Math.random() < d * 0.3) return;                                          // a note drops out
+        const wave = d > 0.45 && Math.random() < d * 0.6 ? 'triangle' : 'sine';                  // a little rougher, but never harsh or buzzy
+        const bend = d > 0.4 ? f * (1 - 0.3 * d * Math.random()) : null;                         // sags downwards
+        tone(f, 0.45 + d * 0.5, 0.05, wave, bend, t);
+        tone(f * 2, 0.25, 0.012 * (1 - d), 'sine', null, t);                                     // the shimmer on top fades away
+        if (d > 0.3) tone(f * 1.04, 0.45, d * 0.03, 'sine', null, t);                            // a second, slightly out-of-tune copy: a slow, uneasy beat
+        if (d > 0.55 && Math.random() < d * 0.4) tone(f, 0.06, 0.03, 'triangle', null, t + 0.05);   // stutters
+      });
+      if (d > 0.6) tone(110, 0.9, 0.035 * d, 'sine', 80);                                        // a low rumble underneath
+      if (d > 0.45) noise(0.08 + d * 0.15, 0.015 + d * 0.02, 'lowpass', rnd(250, 700), rnd(120, 400));   // a dull rush of static, no hiss
+    },
+    tick:   function () { noise(0.03, 0.035, 'highpass', 3500); },                              // hovering a card
+    click:  function () { tone(1300, 0.04, 0.03, 'square', 700); },                             // pressing something
+    clock:  function () { clockFlip = !clockFlip; tone(clockFlip ? 2100 : 1500, 0.035, 0.05, 'square', clockFlip ? 1200 : 900); noise(0.03, 0.03, 'bandpass', 2600); },   // a clock tick (tick, tock, tick...)
+    heart:  function () { tone(520, 0.09, 0.04, 'sine', 780); },                                // a heart
+    ghostClick: function () { tone(700, 0.08, 0.035, 'square', 260); noise(0.1, 0.02, 'lowpass', 500); },   // the ghost's click, a beat late
+    chime:  function (dread) {                                                                  // a social-proof popup: sweet at first, then wrong
+      const d = Math.min(1, dread || 0);
+      const base = 880 * Math.pow(2, -d * 0.35);
+      tone(base, 0.35, 0.03, 'sine');
+      tone(base * 1.5 * (1 + d * 0.03), 0.5, 0.025, 'sine', null, 0.12);
+      if (d > 0.5) tone(base * 0.5, 0.6, 0.02, 'sawtooth', base * 0.45, 0.05);
+    },
+
+    // ---- the welcome popup and the eye ----
+    suspect: function () {                                                                      // the site starts to suspect you: a cold, slow swell of two clashing notes
+      tone(98, 2.4, 0.05, 'sine', 92);
+      tone(138, 2.4, 0.035, 'sine', 128);                                                        // a tritone above: uneasy
+      tone(49, 2.6, 0.07, 'triangle', 44);
+      noise(2.2, 0.018, 'bandpass', 600, 1800);
+    },
+    accuse: function () {                                                                        // "YOU ALTERED IT": a hard, dissonant hit
+      tone(55, 0.9, 0.16, 'sawtooth', 36);
+      tone(58, 0.9, 0.12, 'sawtooth', 38);
+      tone(392, 0.5, 0.05, 'square', 180);
+      noise(0.6, 0.08, 'lowpass', 1500, 120);
+    },
+    thud:  function () { tone(90, 0.3, 0.12, 'sine', 40); noise(0.2, 0.05, 'lowpass', 300); },    // the popup arrives
+    warn:  function (stage) {                                                                    // each "No thanks." is worse
+      const s = Math.min(4, stage || 1);
+      tone(110 + s * 25, 0.18 + s * 0.05, 0.035 + s * 0.012, 'sawtooth', 55);
+      if (s >= 2) noise(0.14, 0.03 * s, 'bandpass', 800, 200);
+    },
+    // the red "YOU MUST AUTHENTICATE" screen: the same white noise flush, for exactly as long as the screen is showing
+    flash: function () {
+      if (flushNodes) return;
+      flushNodes = flush(FLASH_LEVEL);
+      if (flushNodes) setTimeout(function () { S.flashEnd(); }, 12000);     // never stuck on
+    },
+    // TV static (js/ending.js): the same white noise as the red eye. arg = how loud, as a share of the red eye (1 = the same as the eye, and it lasts for the whole full-screen static; less = a short burst)
+    tvstatic: function (frac) {
+      const f = frac == null ? 1 : frac, n = flush(FLASH_LEVEL * f);
+      if (n) setTimeout(function () { n.stop(f >= 1 ? 0.3 : 0.2); }, f >= 1 ? 2600 : 900);
+    },
+    flashEnd: function () { if (flushNodes) { flushNodes.stop(0.2); flushNodes = null; } },
+    join:  function () { tone(660, 0.12, 0.04, 'sine'); tone(990, 0.2, 0.04, 'sine', null, 0.09); },
+    count: function (n) { tone(n === 1 ? 1320 : 880, 0.09, 0.035, 'square'); },                  // 3... 2... 1...
+    drone: function (on) {                                                                      // the low note under the eye screen
+      if (!live()) { wantDrone = !!on; return; }                                                // (no sound allowed yet: it starts the moment they click or press a key)
+      wantDrone = false;
+      if (on && !droneNodes) {
+        const g = ctx.createGain(); g.gain.value = 0;
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 520;
+        const a = ctx.createOscillator(), b = ctx.createOscillator(), c = ctx.createOscillator(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+        a.type = 'sawtooth'; a.frequency.value = 55;
+        b.type = 'sawtooth'; b.frequency.value = 58.3;
+        c.type = 'sine'; c.frequency.value = 110;                      // an octave up, so it can be heard on laptop speakers and earphones (55 Hz alone barely can)
+        lfo.frequency.value = 0.35; lg.gain.value = DRONE_LEVEL * .4;
+        lfo.connect(lg); lg.connect(g.gain);
+        a.connect(lp); b.connect(lp); c.connect(lp); lp.connect(g); g.connect(master);
+        [a, b, c, lfo].forEach(function (o) { o.start(); });
+        g.gain.linearRampToValueAtTime(DRONE_LEVEL, ctx.currentTime + 3);
+        droneNodes = { g: g, osc: [a, b, c, lfo] };
+      } else if (!on && droneNodes) {
+        const n = droneNodes; droneNodes = null;
+        n.g.gain.cancelScheduledValues(ctx.currentTime);
+        n.g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6);
+        setTimeout(function () { n.osc.forEach(function (o) { try { o.stop(); } catch (e) {} }); }, 800);
+      }
+    },
+    shutter: function () { noise(0.03, 0.09, 'highpass', 2500); tone(180, 0.05, 0.05, 'square', 90); noise(0.04, 0.07, 'highpass', 2000, null, 0.07); },   // the photo lands
+    key:   function () { noise(0.02, 0.03, 'bandpass', rnd(1500, 2600)); tone(rnd(90, 140), 0.03, 0.02, 'sine'); },   // one typed letter
+    done:  function () { tone(880, 0.1, 0.035, 'square'); tone(1320, 0.18, 0.035, 'square', null, 0.11); },
+    static: function () { noise(rnd(0.05, 0.12), 0.07, 'bandpass', rnd(500, 3000), rnd(300, 4000)); tone(rnd(60, 200), 0.06, 0.04, 'sawtooth'); },   // the glitch back to the home page
+    // LEAVE: a flush of white noise. Soft start, fills the speakers, then cut off when the tab closes.
+    leave: function () {
+      const f = flush(LEAVE_LEVEL);
+      if (f) setTimeout(function () { f.stop(0.35); }, 800);
+    },
+
+    // ---- the broken shop (fakepage.html): quiet crying under a faint white-noise bed ----
+    sob: function (on) { if (on === false) sobStop(); else sobStart(); },
+
+    // ---- the product page ----
+    whoosh: function () { noise(0.16, 0.05, 'bandpass', 600, 3200); },                           // the button runs away
+    slip:   function () { tone(520, 0.2, 0.04, 'square', 130); },                                 // the stock number slips
+    certslip:  function () { tone(520, 0.16, 0.013, 'square', 130); },                          // a certificate window appears (much quieter than 'slip')
+    certthud:  function () { tone(90, 0.22, 0.045, 'sine', 40); },                                // the first one (much quieter than 'thud')
+    certbong:  function () { tone(110, 0.6, 0.028, 'sine', 80); tone(220, 0.4, 0.009, 'sine'); },  // a certificate is stuck on a product photo (much quieter than 'bong')
+    bong:   function () { tone(110, 0.8, 0.07, 'sine', 80); tone(220, 0.5, 0.025, 'sine'); },    // a photo changes
+    scrap:  function () { noise(0.3, 0.02, 'bandpass', 1200, 400); }                             // a line of text appears
+  };
+
+  window.SFX = S;
+  window.sfx = function (name, arg) {
+    try {
+      if (ensure() && ctx.state === 'suspended' && !document.hidden) ctx.resume();     // try every time: if the browser already allows sound for this site (they have clicked here before, e.g. on the Start screen), it plays with no tap
+      if (S[name]) S[name](arg);
+    } catch (e) {}
+  };
+  if (ensure()) { try { ctx.resume(); } catch (e) {} applyHum(); }                      // and try straight away when the page loads
+
+  S.isMuted = function () { return muted; };
+  S.setMuted = function (m) {
+    muted = !!m;
+    try { localStorage.setItem(KEY, muted ? 'off' : 'on'); } catch (e) {}
+    if (master) master.gain.linearRampToValueAtTime(muted ? 0 : MASTER, ctx.currentTime + 0.1);
+    applyHum();
+    const b = document.getElementById('sfxToggle');
+    if (b) b.textContent = 'sound: ' + (muted ? 'off' : 'on');
+    document.dispatchEvent(new CustomEvent('sfxchange', { detail: { muted: muted } }));
+  };
+
+  /* ---------- the little corner button ---------- */
+  function addButton() {
+    if (!SFX_BUTTON || document.body.dataset.sfxUi === 'off') return;
+    const b = document.createElement('button');
+    b.id = 'sfxToggle';
+    b.type = 'button';
+    b.textContent = 'sound: ' + (muted ? 'off' : 'on');
+    b.setAttribute('aria-label', 'Turn sound on or off');
+    b.style.cssText = 'position:fixed;right:12px;bottom:10px;z-index:60;padding:3px 8px;background:rgba(255,255,255,.75);' +
+      'color:#000;border:.5px solid #000;font:11px/1 "Intel One Mono",monospace;opacity:.55;cursor:pointer';
+    b.addEventListener('mouseenter', function () { b.style.opacity = 1; });
+    b.addEventListener('mouseleave', function () { b.style.opacity = .55; });
+    b.addEventListener('click', function () { S.setMuted(!muted); });
+    document.body.appendChild(b);
+  }
+  if (document.body) addButton(); else document.addEventListener('DOMContentLoaded', addButton);
+  try { if (!sessionStorage.getItem('realStuf.firstVisit')) sessionStorage.setItem('realStuf.firstVisit', String(Date.now())); } catch (e) {}   // when this visit began (the portal tells them how long)
+})();

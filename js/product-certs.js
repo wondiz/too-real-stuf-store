@@ -1,0 +1,98 @@
+/* =====================================================
+   product-certs.js : the product page's photos slowly get CERTIFICATES stuck on the white tee.
+   A photo only changes while it is out of sight: scroll past it, scroll back, and it is already wearing one.
+   Every time a photo leaves the screen it gains more (1, then 2, then 3...), until the shirt is buried.
+   Needs images/cert-1.png ... (the same pictures as the review page). Put this script on product.html (after js/product.js).
+   All the numbers are below. Nothing else needs changing.
+   ===================================================== */
+(function () {
+  const photos = Array.from(document.querySelectorAll('.pdp-photos img'));
+  const wrap = document.querySelector('.pdp-photos');
+  if (!wrap || !photos.length) return;
+
+  /* ---------- what you can change ---------- */
+  const CERTS = ['images/cert-1.png', 'images/cert-2.png', 'images/cert-3.png', 'images/cert-4.png', 'images/cert-5.png', 'images/cert-6.png'];
+  // where the shirt is in each photo (in the same order as the photos on the page): x, y = the middle of the white tee as a share of the photo (0 to 1),
+  // w = how wide a certificate is (share of the photo width), sx / sy = how far one can wander sideways / up and down from that middle.
+  // Set for your six photos. If a certificate lands off the shirt, nudge that photo's numbers.
+  const SHIRT = [
+    { x: .50, y: .55, w: .36, sx: .17, sy: .16 },   // 1. the flat tee
+    { x: .46, y: .76, w: .34, sx: .16, sy: .08 },   // 2. back of the neck (the shirt is the bottom part)
+    { x: .50, y: .75, w: .36, sx: .17, sy: .08 },   // 3. collar close-up (the shirt is the bottom part)
+    { x: .50, y: .36, w: .27, sx: .10, sy: .08 },   // 4. worn, full length (the tee is small and high up)
+    { x: .50, y: .34, w: .27, sx: .10, sy: .07 },   // 5. worn, from behind
+    { x: .47, y: .52, w: .38, sx: .16, sy: .16 }    // 6. worn, side on
+  ];
+  const TILT = 11;              // degrees: each one is stuck on a little crooked
+  const FIRST = 1, MORE = 2;    // the first time a photo leaves the screen it gains FIRST; every time after, MORE more than last time (1, 3, 5, 7...)
+  const MAX_PER_PHOTO = 26;     // when a photo has this many, it is buried
+  const COLS = 4, ROWS = 5;     // after the first one (which goes on the shirt), they are spread over the whole photo: this is the grid they fill, in a random order
+  const BIG = [.45, 2.1];       // how much smaller or bigger than normal each one can be (a wide range, so they vary a lot)
+  const COLOURS = true;         // false = the certificates keep their own colours
+  const START_AFTER = 2500;     // ms on the page before anything can change
+  /* ---------------------------------------------------- */
+
+  const css = document.createElement('style');
+  css.textContent =
+    '.pdp-photos .pc-layer{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}' +
+    '.pdp-photos .pc-layer .pc{position:absolute;display:block;height:auto;min-height:0;max-width:none;object-fit:fill;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35),0 0 0 1px rgba(0,0,0,.25);transform:translate(-50%,-50%) rotate(var(--r,0deg)) scale(1);transition:none}' +
+    '.pdp-photos .pc-layer .pc.in{animation:pcStick .35s cubic-bezier(.2,1.4,.4,1) both}' +
+    '@keyframes pcStick{from{opacity:0;transform:translate(-50%,-50%) rotate(var(--r,0deg)) scale(1.25)}}' +
+    '@media (prefers-reduced-motion:reduce){.pc.in{animation:none}}';
+  document.head.appendChild(css);
+
+  const layer = document.createElement('div');
+  layer.className = 'pc-layer'; layer.setAttribute('aria-hidden', 'true');
+  wrap.appendChild(layer);
+
+  const rnd = function (a, b) { return a + Math.random() * (b - a); };
+  const shuffle = function (a) { for (let j = a.length - 1; j > 0; j--) { const k = Math.floor(Math.random() * (j + 1)), t = a[j]; a[j] = a[k]; a[k] = t; } return a; };
+  const order = [];                                                // per photo: the grid spots not used yet
+  const seen = photos.map(function () { return false; });        // has it been on screen yet?
+  const gone = photos.map(function () { return 0; });            // how many times has it left the screen?
+  const have = photos.map(function () { return 0; });            // certificates stuck on it
+  let n = 0, ready = false;
+  setTimeout(function () { ready = true; }, START_AFTER);
+
+  function stick(i, count) {
+    const img = photos[i], c = SHIRT[i] || SHIRT[0], W = wrap.offsetWidth, H = wrap.offsetHeight;
+    if (!W || !H) return;
+    if (!order[i]) order[i] = shuffle(Array.from({ length: COLS * ROWS }, function (_, q) { return q; }));
+    for (let k = 0; k < count && have[i] < MAX_PER_PHOTO; k++) {
+      const el = document.createElement('img');
+      el.className = 'pc'; el.alt = ''; el.src = CERTS[(n++) % CERTS.length]; el.draggable = false;
+      let fx, fy, w = c.w;
+      if (have[i] === 0) {                                              // the first one sits on the white tee
+        fx = c.x + rnd(-c.sx, c.sx); fy = c.y + rnd(-c.sy, c.sy);
+      } else {                                                          // the rest wander over the whole photo (a new spot of the grid each time, then anywhere)
+        const q = order[i].length ? order[i].pop() : Math.floor(Math.random() * COLS * ROWS);
+        fx = ((q % COLS) + .5 + rnd(-.5, .5)) / COLS; fy = (Math.floor(q / COLS) + .5 + rnd(-.5, .5)) / ROWS;
+        w = Math.max(c.w, .3) * rnd(BIG[0], BIG[1]);
+      }
+      fx = Math.max(.02, Math.min(.98, fx)); fy = Math.max(.02, Math.min(.98, fy));
+      el.style.left = ((img.offsetLeft + fx * img.offsetWidth) / W * 100) + '%';
+      el.style.top = ((img.offsetTop + fy * img.offsetHeight) / H * 100) + '%';
+      el.style.width = (w * img.offsetWidth / W * 100) + '%';
+      if (COLOURS) el.style.filter = 'sepia(.9) hue-rotate(' + Math.floor(rnd(0, 360)) + 'deg) saturate(' + rnd(2, 4).toFixed(1) + ')';   // a different colour each time
+      el.style.setProperty('--r', rnd(-TILT, TILT).toFixed(1) + 'deg');
+      el.style.zIndex = String(10 + n);
+      layer.appendChild(el);
+      requestAnimationFrame(function () { el.classList.add('in'); });
+      have[i]++;
+    }
+    window.sfx && sfx('certbong');
+    window.dispatchEvent(new CustomEvent('realstuf:certs', { detail: have.reduce(function (a, b) { return a + b; }, 0) }));   // Maya reacts to how many there are (js/assistant.js)
+  }
+
+  // the photo has just gone out of sight: it changes now, so it is already changed when they scroll back
+  const io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      const i = photos.indexOf(en.target);
+      if (en.isIntersecting) { seen[i] = true; return; }
+      if (!seen[i] || !ready) return;
+      seen[i] = false;
+      stick(i, FIRST + MORE * gone[i]++);
+    });
+  }, { threshold: 0 });
+  photos.forEach(function (p) { io.observe(p); });
+})();

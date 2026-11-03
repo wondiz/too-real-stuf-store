@@ -1,0 +1,56 @@
+/* =====================================================
+   review-game.js : the "Make a Review" button on the product page.
+   The review itself now lives on its own page (review.html, js/review-portal.js). This file only does the button:
+   the first press, Maya says her line, then the page goes dark and the computer opens. (The certificate spam moved to the review page.)
+   ===================================================== */
+(function () {
+  const btn = document.querySelector('.auth-btn');
+  if (!btn) return;
+
+  const INTRO = ['...a review.', 'why do you want to write about us?', '...', '...fine...how about we cooperate then...'];   // Maya, the first time the button is pressed (she is still suspicious after the red eye)
+  const INTRO_OPEN_AFTER = 2800;                                   // ms before the computer opens
+  const ALREADY = ['...you already wrote a review.', 'there is only one.'];
+  const PAGE = 'review.html';
+
+  let S = {};
+  try { S = JSON.parse(sessionStorage.getItem('realStuf.review') || '{}'); } catch (e) {}
+  const save = function () { try { sessionStorage.setItem('realStuf.review', JSON.stringify(S)); } catch (e) {} };
+  const say = function (lines) { window.maya && maya.say(lines, null, true); };
+  let going = false;
+
+  function go() {                                                   // the screen shuts off like a monitor, then the computer
+    if (going) return; going = true;
+    const veil = document.createElement('div');
+    veil.style.cssText = 'position:fixed;inset:0;z-index:99;background:#000;opacity:0;transition:opacity .9s ease;pointer-events:all';
+    document.body.appendChild(veil); window.sfx && sfx('thud');
+    requestAnimationFrame(function () { veil.style.opacity = 1; });
+    setTimeout(function () { location.href = PAGE; }, 1100);
+  }
+  // the moment the button is pressed the screen starts to darken: it is the feedback that something is happening, and it gets the screen ready for the
+  // "I'm not a robot" boxes (js/gate.js has its own dark layer; this one covers the wait until it arrives, then goes)
+  const DARKEN = .55, DARKEN_MS = 900;
+  let prep = null;
+  function darken() {
+    if (prep) return;
+    prep = document.createElement('div');
+    prep.setAttribute('data-prep', '1');                             // js/gate.js looks for this: it takes over from this layer without a flash
+    prep.style.cssText = 'position:fixed;inset:0;z-index:51;background:rgba(0,0,0,' + DARKEN + ');opacity:0;pointer-events:auto;transition:opacity ' + DARKEN_MS + 'ms ease';
+    document.body.appendChild(prep); window.sfx && sfx('warn', 1);
+    ['wheel', 'touchmove'].forEach(function (ev) { prep.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false }); });
+    requestAnimationFrame(function () { requestAnimationFrame(function () { if (prep) prep.style.opacity = 1; }); });
+  }
+  function undarken() { if (!prep) return; const v = prep; prep = null; v.remove(); }      // (js/gate.js removes it itself when its own dark layer starts; this is only for the case where the boxes never come)
+
+  function open() {
+    if (S.done) { say(ALREADY); return; }
+    darken();
+    const enter = function () { window.gate ? gate.start(go) : go(); setTimeout(undarken, 1300); };        // the way in is guarded: the "I'm not a robot" boxes (js/gate.js); its own dark layer has taken over by then
+    if (!S.intro) {
+      S.intro = true; save(); say(INTRO);
+      setTimeout(enter, INTRO_OPEN_AFTER); return;
+    }
+    enter();
+  }
+  btn.addEventListener('click', open);                              // (certs.js used to do this; it is no longer on this page)
+  window.reviewGame = { open: open, state: function () { return S; } };
+})();

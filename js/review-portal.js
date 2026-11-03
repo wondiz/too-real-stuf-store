@@ -1,0 +1,379 @@
+/* =====================================================
+   review-portal.js : review.html. "Make a Review" on an old computer.
+   START window (your design: images/review-start.png) -> REVIEW window: the floating shirt (js/review-tee.js) with a question under it.
+   15 questions. Each (except the last) is answered "more real" or "less real". The portal keeps score: confidence = the share of answers that were "more real".
+   The last question (are you alone) is a plain yes / no, with its own reaction, and is not part of the score.
+   Then the confidence screen (the message depends on the percentage) with two buttons: leave / continue to review.
+   70% and above can continue, but only after a last check: the "select all images that are real" captcha. Crowded = through to the writing page (review-write.html). Blank = thrown out.
+   Wording is a first draft: edit the lists below.
+   ===================================================== */
+(function () {
+  const $ = function (id) { return document.getElementById(id); };
+  const start = $('start'), main = $('main');
+  if (!start || !main) return;
+  // only people who have joined the shop get in (testing: ?unlock=1 skips this). Maya is not on this page: the review speaks for itself.
+  if (/[?&]unlock=1/.test(location.search)) { try { sessionStorage.setItem('realStuf.joined', '1'); } catch (e) {} }
+  try {
+    if (sessionStorage.getItem('realStuf.joined') !== '1') { location.replace('home.html'); return; }
+    if (sessionStorage.getItem('realStuf.gate') !== '1' && !/[?&]unlock=1/.test(location.search)) { location.replace('product.html'); return; }   // you have to pass the "I'm not a robot" boxes first
+  } catch (e) {}
+
+  /* ---------- the wording and the knobs ---------- */
+  const TYPE_SPEED = 22;                                            // ms per letter of a question
+  const BACK_TO_PRODUCT = 'product.html';                           // where "leave" and a failed check go
+  const WRITE_PAGE = 'review-write.html';                           // where the check leads when it is passed
+  const SPAM_LIFE = 7000;                                           // ms the spam certificates stay before they clear themselves (so the shirt can be seen again). 0 = they stay until closed
+  const VIG_FROM = 8, VIG_START = .3;                               // the red vignette over the shirt: starts at this question (8 = question 9) at this strength (0-1), then gets stronger every question up to 1
+  const PASS_AT = 70;                                               // confidence needed to be allowed to continue
+
+  // the questions, in order. fx = what the shirt looks like while you answer (see js/review-tee.js):
+  //   n certificates (a number, or 'many' = a million) | v 'typo' / 'stranger' / 'self' | big | glossy | label 'real' / 'fake' / any text | qr | nest (a certificate stuck on the certificate, this many deep)
+  //   words (covered in I AM REAL) | docs (passport and birth certificate) | sticker (a surveillance label) | eye (an eye on the chest) | view 'back' | twin
+  //   spam = this many certificate windows pile in when the question appears | cams = this many red face-cam windows | creep = the creeping text starts here
+  const QUESTIONS = [
+    { q: 'If there were no certificates on our shirt, is it more or less real?', fx: { n: 0 } },
+    { q: 'If our product had a working QR code, is it more or less real?', fx: { n: 0, qr: true } },
+    { q: 'If the label on the certificate said “100% real”, is it more or less real?', fx: { n: 1, label: 'real' } },
+    { q: 'If our website promises our shirt was real, is it more or less real?', fx: { n: 0, label: 'WE PROMISE' } },
+    { q: 'If there was one certificate for our shirt, is it more or less real?', fx: { n: 1 } },
+    { q: 'If a certificate was signed by someone you have never heard of, is it more or less real?', fx: { n: 1, v: 'stranger' } },
+    { q: 'If the size of the certificate was larger, is it more or less real?', fx: { n: 1, big: true } },
+    { q: 'If the certificate had a certificate for the certificate, is it more or less real?', fx: { n: 1, nest: 1 } },
+    { q: 'If the certificate had a certificate for the certificate of the certificate, is it more or less real?', fx: { n: 1, nest: 2 } },
+    { q: 'If there were a million certificates for our shirt, is it more or less real?', fx: { n: 'many' }, spam: 7 },
+    { q: 'If a shirt is covered in the repeated statement “I am real. I am real. I am real.”, does that make it more or less real?', fx: { n: 0, words: true }, creep: true },
+    { q: 'If the shirt had a passport and birth certificate, is it more or less real?', fx: { n: 0, docs: true } },
+    { q: 'If our shirt was constantly being monitored, is it more or less real?', fx: { n: 0, sticker: 'SURVEILLANCE CAMERA' } },
+    { q: 'If our shirt was constantly monitoring you, is it more or less real?', fx: { n: 0, eye: true } },
+    { q: 'Are you alone right now?', fx: { n: 0, eye: true, eyebg: true }, yn: true, cams: 3 }
+  ];
+  const SCORED = QUESTIONS.filter(function (x) { return !x.yn; }).length;      // the last one is not part of the score
+
+  const ALONE = { yes: ['...good.', 'lets keep it that way.'], no: ['...then who is that?', 'do not turn around.'] };    // the site's reaction to the last question
+
+  // the confidence scale: the first one whose max the percentage does not pass
+  const TIERS = [
+    { max: 49,  text: 'Oh dear. please consider going back and adjusting your answers. We’d hate for anything unfortunate to happen.' },
+    { max: 59,  text: 'We’re afraid you’re not quite ready to leave a review. Please leave the portal at once. Do not make this more difficult than it needs to be.' },
+    { max: 69,  text: 'So close yet so far. Surely, if you try one more time, you’ll get it right?' },
+    { max: 89,  text: 'We suppose that will suffice. Please remember that your responses will be reviewed and monitored.' },
+    { max: 100, text: 'Perfect! You’re free to leave your review. Have a lovely day! :)' }
+  ];
+  // pressing "leave" (or the X) on a FAILED result: the first time the eye throws you back to the very start, the second time you are erased
+  const LEAVE_EYE = [
+    { text: 'YOU MAY NOT LEAVE.', shake: true, hold: 2200 },
+    { text: '...i thought we agreed to not question our authenticity anymore.', hold: 2400 },
+    { text: '...try again', hold: 1600 },
+    { text: 'answer them right this time', shake: true, hold: 2400 }
+  ];
+  const RED_LINES = ['> you have failed us SO. MANY. TIMES.', 'you are out of chances', 'you will be erased'];     // typed in white on a plain red screen
+  const FAILS_KEY = 'realStuf.reviewFails';                         // how many times they have been thrown out
+  const LEAVE = ['...you have not finished your review.'];            // pressing the X or Cancel halfway
+
+  /* ---------- the state (kept for this visit) ---------- */
+  const KEY = 'realStuf.review';
+  let S = { i: 0, more: 0, rows: [], alone: null, stage: 'quiz', done: false, ev: {} };      // stage: 'quiz' | 'score'
+  try { S = Object.assign(S, JSON.parse(sessionStorage.getItem(KEY) || '{}')); } catch (e) {}
+  if (!Array.isArray(S.rows) || (S.rows.length && typeof S.rows[0].more === 'undefined')) S = { i: 0, more: 0, rows: [], alone: null, stage: 'quiz', done: false, ev: {} };   // an old save from the earlier version: start again
+  const save = function () { try { sessionStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const q = $('q'), answers = $('answers'), sayEl = $('say'), label = $('label'), dots = $('dots'), cap = $('cap'), stage = $('stage'), bar = main.querySelector('.rp-bar');
+  let typing = 0;
+  const pct = function () { return Math.round(100 * S.more / SCORED); };
+
+  // the review's own voice (it replaces Maya here): typed into the status bar on the start screen, under the buttons in the review
+  function say(lines, done) {
+    const el = main.hidden ? $('rsStatus') : sayEl; let k = 0;
+    if (!main.hidden) el.className = 'rp-s tier2';
+    (function line() {
+      if (k >= lines.length) { done && done(); return; }
+      type(el, lines[k++], 26, function () { setTimeout(line, 1300); });
+    })();
+  }
+  function type(el, text, speed, done) {
+    const run = ++typing; el.textContent = ''; el.classList.add('typing');
+    const end = function () { el.classList.remove('typing'); done && done(); };
+    if (reduce) { el.textContent = text; end(); return; }
+    let n = 0;
+    (function nextLetter() {
+      if (run !== typing) return;
+      el.textContent = text.slice(0, ++n);
+      if (window.sfx && text[n - 1] !== ' ') sfx('key');
+      if (n >= text.length) { end(); return; }
+      setTimeout(nextLetter, text[n - 1] === '.' ? speed * 3 : speed);
+    })();
+  }
+
+  /* ---------- the shirt ---------- */
+  function shirt(fx) {
+    fx = Object.assign({}, fx, { seed: S.i, anger: S.stage === 'score' ? 0 : Math.max(0, (S.i - 9) / 8) });
+    window.__rpTee = fx; window.dispatchEvent(new CustomEvent('rp:tee', { detail: fx }));
+    const vig = S.stage === 'score' ? 1 : S.i < VIG_FROM ? 0 : Math.min(1, VIG_START + (1 - VIG_START) * (S.i - VIG_FROM) / (QUESTIONS.length - 1 - VIG_FROM));
+    stage.style.setProperty('--vig', vig);                              // the red vignette (css/review-portal.css)
+    eyeBg.classList.toggle('on', !!fx.eyebg);                         // the red eye behind the shirt
+  }
+
+  // the eye's pupil follows the cursor (only while the eye is showing)
+  const eyeBg = $('eyebg'), pupil = eyeBg && eyeBg.querySelector('.rp-eye-pupil'), eyeWrap = eyeBg && eyeBg.querySelector('.rp-eye-wrap');
+  let eyeX = 0, eyeY = 0, eyeTx = 0, eyeTy = 0;
+  addEventListener('pointermove', function (e) {
+    if (!eyeBg || !eyeBg.classList.contains('on')) return;
+    const r = eyeWrap.getBoundingClientRect(), dx = (e.clientX - (r.left + r.width / 2)) / (innerWidth / 2), dy = (e.clientY - (r.top + r.height / 2)) / (innerHeight / 2), len = Math.hypot(dx, dy) || 1, k = Math.min(1, len) / len;
+    eyeTx = dx * k; eyeTy = dy * k;
+  });
+  (function eyeLoop() {
+    requestAnimationFrame(eyeLoop);
+    if (!eyeBg || !eyeBg.classList.contains('on')) return;
+    eyeX += (eyeTx - eyeX) * .12; eyeY += (eyeTy - eyeY) * .12;
+    const w = eyeWrap.getBoundingClientRect().width, t = reduce ? 0 : .01;
+    pupil.style.transform = 'translate(' + ((eyeX + (Math.random() - .5) * t) * .07 * w) + 'px,' + ((eyeY + (Math.random() - .5) * t) * .05 * w) + 'px)';
+  })();
+
+  /* ---------- the creeping text: starts on the question marked creep: true. Several chunks sit around the screen. Every CREEP_EVERY ms ONE MORE LINE appears in every chunk at the same time
+     (line 1 of all of them, then line 2 of all of them, then line 3 ...), so they all grow down the page together, with a clock tick, until they run off the screen.
+     When the question is answered it all disappears at once ---------- */
+  const CREEP_TEXT = 'I AM REAL';                                   // what it says
+  const CREEP_EVERY = 1300;                                         // ms between one new line and the next
+  const CHUNKS = [                                                   // where each chunk starts (left / top, % of the screen) and its letter size (vw)
+    { l: 1,  t: 4,  s: 1.5 }, { l: 4,  t: 14, s: 3.2 }, { l: 63, t: 3,  s: 1.5 }, { l: 88, t: 12, s: 1.7 },
+    { l: 66, t: 20, s: 4.0 }, { l: 0,  t: 32, s: 2.2 }, { l: 86, t: 30, s: 2.2 }, { l: 34, t: 1,  s: 1.3 }
+  ];
+  let creepEl = null, creepTimer = 0;
+  function creepAdd() {                                               // one more line in every chunk
+    if (!creepEl) return;
+    let grew = 0;
+    creepEl.querySelectorAll('.rp-creep-chunk').forEach(function (d) {
+      if (d.getBoundingClientRect().bottom > innerHeight + 40 || d.children.length >= 60) return;     // already off the bottom of the screen
+      const sp = document.createElement('span'); sp.textContent = CREEP_TEXT; d.appendChild(sp);
+      void sp.offsetWidth; sp.classList.add('on'); grew++;
+    });
+    if (grew) window.sfx && sfx('clock'); else clearInterval(creepTimer);
+  }
+  function creepStart() {
+    if (creepEl) return;
+    creepEl = document.createElement('div'); creepEl.className = 'rp-creep'; creepEl.setAttribute('aria-hidden', 'true');
+    CHUNKS.forEach(function (c) { const d = document.createElement('div'); d.className = 'rp-creep-chunk'; d.style.cssText = 'left:' + c.l + '%;top:' + c.t + '%;font-size:' + c.s + 'vw'; creepEl.appendChild(d); });
+    document.body.appendChild(creepEl);
+    setTimeout(creepAdd, 500); creepTimer = setInterval(creepAdd, CREEP_EVERY);
+  }
+  function creepStop() { clearInterval(creepTimer); if (creepEl) { creepEl.remove(); creepEl = null; } }      // gone at once
+
+  /* ---------- the progress dots: one per question ---------- */
+  function drawDots() {
+    dots.innerHTML = '';
+    for (let k = 0; k < QUESTIONS.length; k++) { const d = document.createElement('i'); if (k >= S.i) d.style.opacity = k === S.i ? .8 : .25; dots.appendChild(d); }
+  }
+
+  /* ---------- one question at a time ---------- */
+  function begin() {
+    document.body.classList.add('started'); start.hidden = true; main.hidden = false; window.sfx && sfx('thud');
+    $('taskName').textContent = 'Make a Review';
+    if (S.stage === 'score') score(); else ask();
+  }
+  function ask() {
+    const Q = QUESTIONS[S.i];
+    bar.classList.remove('score'); stage.classList.remove('side'); q.innerHTML = ''; answers.innerHTML = ''; sayEl.textContent = ''; sayEl.className = 'rp-s';
+    label.textContent = 'Question ' + (S.i + 1) + ' of ' + QUESTIONS.length; cap.textContent = '';
+    drawDots(); shirt(Q.fx);
+    if (Q.creep) creepStart();
+    if (Q.cams && window.certs && certs.cams) certs.cams(Q.cams);       // red face cams of the visitor
+    if (Q.spam && window.certs && !S.ev[S.i]) { S.ev[S.i] = 1; save(); certs.spawn(Q.spam); if (SPAM_LIFE) setTimeout(function () { certs.clearAll(); }, SPAM_LIFE); }   // the certificates pile in as the question appears
+    q.style.fontSize = Q.q.length > 85 ? '2.3cqw' : '';                 // a long question gets a little smaller so it fits above the buttons
+    type(q, Q.q, TYPE_SPEED, function () {
+      (Q.yn ? ['yes', 'no'] : ['more real', 'less real']).forEach(function (v) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'rp-btn'; b.textContent = v;
+        b.addEventListener('click', function () { answer(v, Q); });
+        answers.appendChild(b);
+      });
+    });
+  }
+  function answer(v, Q) {
+    window.sfx && sfx('click'); if (Q.creep) creepStop();                // the creeping text vanishes the moment they answer
+    answers.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+    const more = v === 'more real';
+    S.rows.push({ q: Q.q, a: v, more: more ? 1 : 0 });
+    if (Q.yn) {                                                       // the last question: its own reaction, not part of the score
+      S.alone = v; save();
+      say(ALONE[v], function () { setTimeout(score, 900); });
+      return;
+    }
+    if (more) S.more++;
+    S.i++; save();
+    setTimeout(ask, 450);
+  }
+
+  /* ---------- the confidence screen ---------- */
+  function score() {
+    S.stage = 'score'; save(); window.certs && certs.clearAll && certs.clearAll(); window.certs && certs.camsOff && certs.camsOff();
+    const p = pct(), tier = TIERS.find(function (t) { return p <= t.max; }), ok = p >= PASS_AT;
+    bar.classList.add('score'); stage.classList.add('side'); q.style.fontSize = ''; answers.innerHTML = ''; sayEl.textContent = ''; sayEl.className = 'rp-s tier' + (p >= PASS_AT ? 0 : p >= 60 ? 2 : p >= 50 ? 3 : 4);
+    label.textContent = 'Result'; cap.textContent = '';
+    dots.innerHTML = ''; shirt({ n: ok ? 1 : 0 });
+    q.innerHTML = '<span></span><b class="rp-pct"></b>';               // "Confidence in our product:" and, under it, the big underlined percentage
+    type(q.firstChild, 'Confidence in our product:', 40, function () {
+      type(q.lastChild, p + '%', 90, function () {
+        setTimeout(function () {
+          type(sayEl, tier.text, 24, function () {
+            const leaveB = button('leave', leave), goB = button('continue to review', function () { check(); });
+            goB.disabled = !ok; if (!ok) goB.title = 'You need ' + PASS_AT + '% to continue.';
+            leaveB.disabled = ok;                                      // a good enough score: "leave" is shut (greyed out, not clickable)
+            answers.appendChild(leaveB); answers.appendChild(goB);
+            window.sfx && sfx(ok ? 'done' : 'warn', 1);
+          });
+        }, 500);
+      });
+    });
+  }
+  function button(text, fn) { const b = document.createElement('button'); b.type = 'button'; b.className = 'rp-btn'; b.textContent = text; b.addEventListener('click', function () { window.sfx && sfx('click'); fn(); }); return b; }
+  function leave() {
+    if (S.stage === 'score' && pct() < PASS_AT) { failedLeave(); return; }
+    leaveNow();
+  }
+  function failedLeave() {
+    let n = 0; try { n = +sessionStorage.getItem(FAILS_KEY) || 0; sessionStorage.setItem(FAILS_KEY, String(n + 1)); } catch (e) {}
+    if (n < 1) {                                                      // first time: the eye, then back to the very start
+      if (!window.warnEye) { restart(); return; }
+      warnEye(null, restart, { screens: LEAVE_EYE, straight: true });
+      return;
+    }
+    erased();                                                         // every time after that
+  }
+  function restart() {                                              // the whole review starts again (the start window with the serial number)
+    S = { i: 0, more: 0, rows: [], alone: null, stage: 'quiz', done: false, ev: {} }; save();
+    try { sessionStorage.removeItem('realStuf.reviewPass'); } catch (e) {}
+    creepStop(); document.body.classList.add('dark'); location.reload();
+  }
+  function erased() {                                               // a plain red screen, white typing, then the tab goes
+    window.certs && certs.clearAll && certs.clearAll(); creepStop();
+    const red = document.createElement('div'); red.className = 'rp-red'; red.innerHTML = '<div class="rp-red-t"></div>'; document.body.appendChild(red);
+    window.sfx && sfx('warn', 3);
+    const box = red.firstChild; let k = 0;
+    (function line() {
+      if (k >= RED_LINES.length) { setTimeout(gone, reduce ? 600 : 1800); return; }
+      const p = document.createElement('p'); box.appendChild(p);
+      type(p, RED_LINES[k++], 70, function () { setTimeout(line, reduce ? 0 : 900); });
+    })();
+    function gone() {
+      red.classList.add('black'); window.sfx && sfx('drone', false);        // cut to black
+      if (window.theEnd) { theEnd.start({ delay: reduce ? 200 : 1200 }); return; }      // js/ending.js: six red face windows, then static, then the tab closes
+      setTimeout(function () { window.close(); setTimeout(function () { location.replace('about:blank'); }, 400); }, reduce ? 300 : 1600);   // closes the tab (browsers only allow it sometimes: if not, the page goes blank)
+    }
+  }
+  function leaveNow() { document.body.classList.add('dark'); setTimeout(function () { location.href = BACK_TO_PRODUCT; }, 1500); }
+
+  /* ---------- the last check: "remove all images that are fake" ----------
+     Nine tiles make up one picture. Each tile is a piece of the CROWDED surface or a piece of the BLANK one, jumbled. Clicking a tile turns it into the other kind
+     (same spot in the picture). Click every blank one and the whole crowded picture appears; click every crowded one and the blank picture appears.
+     VERIFY: all crowded = through to the writing page. All blank = thrown out. Still mixed = "finish the image". */
+  /* the wrong picture (everything blank): "YOU'RE WRONG" flashes across the screen, then, softer, "...try again", and the check opens again with new tiles */
+  const WRONG = 'YOU’RE WRONG', WRONG_SOFT = 'since you’ve proven yourself...i’ll let it go this time...', WRONG_AGAIN = 'TRY AGAIN';
+  function wrongPicture() {
+    const w = document.createElement('div'); w.className = 'rp-wrong'; document.body.appendChild(w);
+    const show = function (text, soft) { w.innerHTML = ''; const b = document.createElement('b'); if (soft) b.className = 'soft'; b.textContent = text; w.appendChild(b); };
+    show(WRONG); window.sfx && sfx('warn', 3);                                              // 1. YOU'RE WRONG, flashing
+    setTimeout(function () {
+      show(WRONG_SOFT, true); window.sfx && sfx('tick');                                    // 2. the softer line
+      setTimeout(function () {
+        show(WRONG_AGAIN); window.sfx && sfx('warn', 2);                                    // 3. TRY AGAIN, flashing
+        setTimeout(function () {
+          w.classList.add('out');
+          setTimeout(function () { w.remove(); check(); }, reduce ? 0 : 700);              // and the check opens again with new tiles
+        }, reduce ? 800 : 1500);
+      }, reduce ? 800 : 2300);
+    }, reduce ? 800 : 1500);
+  }
+  const CROWD = 'images/captcha-crowded.jpg', PLAIN = 'images/captcha-plain.jpg';
+  const FINAL_CHECK = 'Just one final check...';                      // typed in the title bar above the check
+  const CP_HEAD = ['Remove all images that are', 'fake.'];   // the banner of the check: a small line, the big word
+  const CP_Y = [14.5, 49.9, 85.3];                                    // which part of the (taller) picture each row of tiles shows
+  function check() {
+    if (document.querySelector('.cp-layer')) return;
+    window.sfx && sfx('thud');
+    const crowdN = 4 + Math.floor(Math.random() * 2), kinds = [];     // 4 or 5 of the nine start crowded, the rest blank, in a random order
+    for (let k = 0; k < 9; k++) kinds.push(k < crowdN);
+    kinds.sort(function () { return Math.random() - .5; });
+    const layer = document.createElement('div'); layer.className = 'cp-layer';
+    layer.innerHTML = '<div class="cp-vig" aria-hidden="true"></div><div class="cp" role="dialog" aria-label="Verification"><div class="cp-head"><span>' + CP_HEAD[0] + '</span><b>' + CP_HEAD[1] + '</b></div><div class="cp-shirt"><div class="cp-grid"></div></div>' +
+      '<div class="cp-foot"><i class="cp-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg></i>' +
+      '<i class="cp-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0-9 9v7a2 2 0 0 0 2 2h2v-8H5v-1a7 7 0 0 1 14 0v1h-2v8h2a2 2 0 0 0 2-2v-7a9 9 0 0 0-9-9z"/></svg></i>' +
+      '<i class="cp-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/></svg></i>' +
+      '<button class="cp-verify" type="button">VERIFY</button></div><p class="cp-msg" aria-live="polite"></p></div>';
+    document.body.appendChild(layer);
+    const fin = document.createElement('div'); fin.className = 'cp-final'; layer.appendChild(fin);   // "Just one final check..." in the window's title bar, above the check
+    const wr = main.getBoundingClientRect(); fin.style.cssText = 'left:' + wr.left + 'px;width:' + wr.width + 'px;top:' + (wr.top + wr.height * .0159) + 'px;height:' + (wr.height * .0466) + 'px;font-size:' + (wr.width * .021) + 'px';
+    setTimeout(function () { type(fin, FINAL_CHECK, 55); }, reduce ? 0 : 500);
+    const grid = layer.querySelector('.cp-grid'), msg = layer.querySelector('.cp-msg'), tileEls = [];
+    kinds.forEach(function (isCrowd, k) {
+      const el = document.createElement('button'); el.type = 'button'; el.className = 'cp-tile'; el.setAttribute('aria-label', 'image ' + (k + 1));
+      el.innerHTML = '<span></span>';
+      const sp = el.firstChild, pos = (k % 3) * 50 + '% ' + CP_Y[Math.floor(k / 3)] + '%';       // tile k is always piece k of the picture
+      const paint = function () { el.dataset.crowd = isCrowd ? '1' : '0'; sp.style.cssText = 'background-image:url(' + (isCrowd ? CROWD : PLAIN) + ');background-size:300% 382.35%;background-position:' + pos; };
+      paint();
+      el.addEventListener('click', function () {                      // it turns into the other kind
+        isCrowd = !isCrowd; paint(); msg.textContent = ''; window.sfx && sfx('tick');
+        el.classList.remove('flip'); void el.offsetWidth; el.classList.add('flip');
+      });
+      grid.appendChild(el); tileEls.push(el);
+    });
+    layer.querySelector('.cp-verify').addEventListener('click', function () {
+      const c = tileEls.filter(function (t) { return t.dataset.crowd === '1'; }).length;
+      if (c > 0 && c < 9) {                                           // still a mixture: the picture has to be finished
+        msg.textContent = 'Please finish the image.'; window.sfx && sfx('warn', 1);
+        const box = layer.querySelector('.cp'); box.classList.remove('nope'); void box.offsetWidth; box.classList.add('nope'); return;
+      }
+      layer.querySelector('.cp-verify').disabled = true; window.sfx && sfx('click');
+      setTimeout(function () {
+        if (c === 9) {                                                // the crowded picture: through
+          try { sessionStorage.setItem('realStuf.reviewPass', '1'); } catch (e) {}
+          window.sfx && sfx('done'); layer.classList.add('ok'); document.body.classList.add('dark');
+          setTimeout(function () { location.href = WRITE_PAGE; }, 1400);
+        } else {                                                      // the blank picture: thrown out
+          window.sfx && sfx('warn', 3); layer.classList.add('bad');
+          setTimeout(function () { layer.remove(); wrongPicture(); }, 500);                // the blank picture: a warning flashes across the screen, then the check starts again
+        }
+      }, reduce ? 0 : 900);
+    });
+  }
+
+  /* ---------- the start window, the desk ---------- */
+  const serial = $('serial'), status = $('rsStatus');
+  // waiting for them to type: the box is focused, and an empty box shows a flashing block cursor (css/review-portal.css: .rs-caret)
+  setTimeout(function () { if (!start.hidden) serial.focus(); }, 700);
+  start.addEventListener('click', function (e) { if (!start.hidden && !e.target.closest('.rs-hit')) serial.focus(); });
+  function tryBegin() {                                                // the serial number: anything is accepted, except nothing
+    if (!serial.value.trim()) {
+      status.textContent = 'Serial number cannot be empty. Fake serials are empty.'; window.sfx && sfx('warn', 1);
+      serial.classList.remove('nope'); void serial.offsetWidth; serial.classList.add('nope'); serial.focus(); return;
+    }
+    status.textContent = 'Serial accepted. (All serials are accepted.)'; window.sfx && sfx('click');
+    $('begin').disabled = true; setTimeout(begin, 1300);
+  }
+  $('begin').addEventListener('click', tryBegin);
+  serial.addEventListener('keydown', function (e) { if (e.key === 'Enter') tryBegin(); });
+  serial.addEventListener('input', function () { status.textContent = 'Ready.'; });
+  const cancelStart = function () { window.sfx && sfx('warn', 1); say(LEAVE); };      // there is no way out
+  $('cancel').addEventListener('click', cancelStart); $('startX').addEventListener('click', cancelStart);
+  $('xbtn').addEventListener('click', function () { if (S.stage === 'score' && pct() >= PASS_AT) return; if (S.stage === 'score') leave(); else { window.sfx && sfx('warn', 1); say(LEAVE); } });
+  const titleBar = main.querySelector('.ct-title');                     // the title bar drags the window
+  titleBar.addEventListener('pointerdown', function (e) {
+    const r = main.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top; titleBar.setPointerCapture(e.pointerId);
+    main.style.position = 'fixed'; main.style.left = r.left + 'px'; main.style.top = r.top + 'px'; main.style.margin = 0;
+    const move = function (m) { main.style.left = (m.clientX - ox) + 'px'; main.style.top = (m.clientY - oy) + 'px'; };
+    titleBar.addEventListener('pointermove', move); titleBar.addEventListener('pointerup', function () { titleBar.removeEventListener('pointermove', move); }, { once: true });
+  });
+  if (window.certs && certs.calm) certs.calm();                      // here the certificate windows are only spam: closing one just closes it
+  const bg = $('bgvid');                                               // the moving background: only shown once it has really loaded
+  if (bg) {
+    bg.muted = true;
+    bg.addEventListener('loadeddata', function () { bg.classList.add('on'); document.body.classList.add('has-bg'); bg.play && bg.play().catch(function () {}); });
+  }
+  const clock = $('clock');
+  (function tick() {
+    const d = new Date(), pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    clock.textContent = S.i >= 10 ? '00:00' : d.getHours() + ':' + pad(d.getMinutes());     // the clock stops being right late in the questions
+    setTimeout(tick, 5000);
+  })();
+
+  if ((S.i > 0 || S.stage === 'score') && !S.done) begin();            // refreshed halfway: straight back in
+  window.reviewPortal = { state: function () { return S; } };
+})();
