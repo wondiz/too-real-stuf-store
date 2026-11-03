@@ -11,7 +11,7 @@
   const AUTH_TEXT = 'authenticating that you are a real person', ASK_TEXT = 'is this...you..?';
   const TYPE_SPEED = 70, TYPE_START = 700;       // ms per letter / before the first letter
   // the black screen before the eye (the old "thank you" screen layout): a big line, a small line, then a line ending in a number that counts down (3... 2... 1... replaces itself)
-  const COUNT_BIG = 'Irregular activity detected. Authentication required.', COUNT_SMALL = 'We are a real website. Only real humans are permitted access here...\nYour behaviour has triggered our authentication protocols.';
+  const COUNT_BIG = 'Irregular activity detected.\nAuthentication required.', COUNT_SMALL = 'We are a real website. Only real humans are permitted access here...\nYour behaviour has triggered our authentication protocols.';
   const COUNT_TEXT = 'Authenticating your authenticity for OUR protection in ', COUNT_FROM = 3, COUNT_STEP = 1000, COUNT_SPEED = 45, COUNT_GAP = 600;   // COUNT_SPEED = ms per letter, COUNT_GAP = quiet between its lines
   // after the eye: a red screen, black typed questions. Each is typed, then a box sits on the same line. (First draft: change them freely. Answers are kept in this browser only, with the visitor: getVisitor().answers)
   const NAME_ASK = 'type your name to complete authentication:';          // only asked (on its own screen, in place of "is X your real name?") if they never gave their name on the join screen
