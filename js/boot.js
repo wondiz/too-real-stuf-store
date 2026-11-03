@@ -61,7 +61,7 @@
     done = true;
     boot.hidden = true;
     portal.hidden = false;
-    window.askCamera && askCamera(true);     // the camera permission box appears with the Start screen
+    // (the camera is NOT asked for here any more: a request that is not from a click only shows a tiny "Use camera?" chip in Chrome. The Start button asks, see index.html)
   }
   function leave() {
     timers.forEach(function (id) { clearTimeout(id); cancelAnimationFrame(id); });
