@@ -53,17 +53,17 @@
 
   // the confidence scale: the first one whose max the percentage does not pass
   const TIERS = [
-    { max: 49,  text: 'Oh dear. please consider going back and adjusting your answers. We’d hate for anything unfortunate to happen.' },
-    { max: 59,  text: 'We’re afraid you’re not quite ready to leave a review. Please leave the portal at once. Do not make this more difficult than it needs to be.' },
-    { max: 69,  text: 'So close yet so far. Surely, if you try one more time, you’ll get it right?' },
+    { max: 49,  text: 'Oh dear. please consider going back and redoing the questions. We’d hate for anything unfortunate to happen.' },
+    { max: 59,  text: 'We’re afraid you’re not quite ready to leave a review. Please redo the questions correctly. Do not make this more difficult than it needs to be.' },
+    { max: 69,  text: 'So close yet so far. Surely, if you try one more time, you’ll finally learn the right answers?' },
     { max: 89,  text: 'We suppose that will suffice. Please remember that your responses will be reviewed and monitored.' },
     { max: 100, text: 'Perfect! You’re free to leave your review. Have a lovely day! :)' }
   ];
   // pressing "leave" (or the X) on a FAILED result: the first time the eye throws you back to the very start, the second time you are erased
   const LEAVE_EYE = [
-    { text: 'YOU MAY NOT LEAVE.', shake: true, hold: 2200 },
+    { text: '...', shake: true, hold: 2200 },
     { text: '...i thought we agreed to not question our authenticity anymore.', hold: 2400 },
-    { text: '...try again', hold: 1600 },
+    { text: '...do not make a mistake this time', hold: 1600 },
     { text: 'answer them right this time', shake: true, hold: 2400 }
   ];
   const RED_LINES = ['> you have failed us SO. MANY. TIMES.', 'you are out of chances', 'you will be erased'];     // typed in white on a plain red screen
@@ -214,7 +214,7 @@
       type(q.lastChild, p + '%', 90, function () {
         setTimeout(function () {
           type(sayEl, tier.text, 24, function () {
-            const leaveB = button('leave', leave), goB = button('continue to review', function () { check(); });
+            const leaveB = button('undo', leave), goB = button('continue to review', function () { check(); });
             goB.disabled = !ok; if (!ok) goB.title = 'You need ' + PASS_AT + '% to continue.';
             leaveB.disabled = ok;                                      // a good enough score: "leave" is shut (greyed out, not clickable)
             answers.appendChild(leaveB); answers.appendChild(goB);
