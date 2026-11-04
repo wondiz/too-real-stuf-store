@@ -73,12 +73,12 @@
         e.preventDefault(); e.stopPropagation();                // stopPropagation: camera.js's own Start handler must not also run
         if (busy) return;
         var href = a.href;
-        if (asked || hasPhoto() || !window.askCamera) { open(href, true); return; }
+        if (asked || !window.askCamera) { asked = false; open(href, true); return; }
         asked = true; busy = true; a.style.opacity = '.6';
         var wait = new Promise(function (r) { setTimeout(r, 90000); });
         Promise.race([askCamera(true), wait]).then(function () {
           busy = false; a.style.opacity = '';
-          open(href, false);                                    // blocked? Start stays here; the next press opens it
+          if (open(href, false)) asked = false;                                      // blocked? Start stays here; the next press opens it
         });
       }, true);
     })();
