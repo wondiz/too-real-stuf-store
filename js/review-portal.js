@@ -214,7 +214,7 @@
       type(q.lastChild, p + '%', 90, function () {
         setTimeout(function () {
           type(sayEl, tier.text, 24, function () {
-            const leaveB = button('undo', leave), goB = button('continue to review', function () { check(); });
+            const leaveB = button('redo', leave), goB = button('continue to review', function () { check(); });
             goB.disabled = !ok; if (!ok) goB.title = 'You need ' + PASS_AT + '% to continue.';
             leaveB.disabled = ok;                                      // a good enough score: "leave" is shut (greyed out, not clickable)
             answers.appendChild(leaveB); answers.appendChild(goB);
