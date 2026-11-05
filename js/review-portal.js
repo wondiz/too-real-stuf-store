@@ -31,14 +31,14 @@
   //   words (covered in I AM REAL) | docs (passport and birth certificate) | sticker (a surveillance label) | eye (an eye on the chest) | view 'back' | twin
   //   spam = this many certificate windows pile in when the question appears | cams = this many red face-cam windows | creep = the creeping text starts here
   const QUESTIONS = [
-    { q: 'If there were no certificates on our shirt, is it more or less real?', fx: { n: 0 } },
+    { q: 'If there were no certificates of authenticity for our shirt, is it more or less real?', fx: { n: 0 } },
     { q: 'If our product had a working QR code, is it more or less real?', fx: { n: 0, qr: true } },
-    { q: 'If the label on the certificate said “100% real”, is it more or less real?', fx: { n: 1, label: 'real' } },
+    { q: 'If the label on the certificate of authenticity said “100% real”, is it more or less real?', fx: { n: 1, label: 'real' } },
     { q: 'If our website promises our shirt was real, is it more or less real?', fx: { n: 0, label: 'WE PROMISE' } },
-    { q: 'If there was one certificate for our shirt, is it more or less real?', fx: { n: 1 } },
-    { q: 'If a certificate was signed by someone you have never heard of, is it more or less real?', fx: { n: 1, v: 'stranger' } },
+    { q: 'If there was one certificate of authenticity for our shirt, is it more or less real?', fx: { n: 1 } },
+    { q: 'If the certificate was signed by someone you have never heard of, is it more or less real?', fx: { n: 1, v: 'stranger' } },
     { q: 'If the size of the certificate was larger, is it more or less real?', fx: { n: 1, big: true } },
-    { q: 'If the certificate had a certificate for the certificate, is it more or less real?', fx: { n: 1, nest: 1 } },
+    { q: 'If the certificate of authenticity had a certificate for the certificate, is it more or less real?', fx: { n: 1, nest: 1 } },
     { q: 'If the certificate had a certificate for the certificate of the certificate, is it more or less real?', fx: { n: 1, nest: 2 } },
     { q: 'If there were a million certificates for our shirt, is it more or less real?', fx: { n: 'many' }, spam: 7 },
     { q: 'If a shirt is covered in the repeated statement “I am real. I am real. I am real.”, does that make it more or less real?', fx: { n: 0, words: true }, creep: true },
