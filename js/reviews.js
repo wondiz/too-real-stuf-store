@@ -42,13 +42,16 @@
 
   function once() { try { if (sessionStorage.getItem(KEY)) return true; sessionStorage.setItem(KEY, '1'); } catch (e) {} return false; }
 
+  const TOP_AT = .2;                                         // how far down the first window sits (share of the screen height; 0.1 = near the top, 0.3 = lower). The second one is always 56px lower than the first. The windows shrink a little if they would run off the bottom.
+
   // where each window goes on this screen: one left, one right, the second a little lower. On a narrow screen (under 900px) they overlap in the middle.
   function place(win, i) {
     const vw = innerWidth, vh = innerHeight;
     const wide = vw >= 900;                                  // room for both side by side? then they are shrunk to fit (so neither covers the other's scrollbar)
-    const s = Math.min(1, wide ? vw * .96 / (2 * FW) : (vw - 16) / FW, (vh - 120) / FH), w = FW * s;
+    const top = Math.max(90, vh * TOP_AT);
+    const s = Math.min(1, wide ? vw * .96 / (2 * FW) : (vw - 16) / FW, (vh - top - 56 - 24) / FH), w = FW * s;
     const left = wide ? (i ? vw - w - vw * .02 : vw * .02) : Math.max(8, (vw - w) / 2) + (i ? 20 : 0);
-    const y = Math.max(60, vh * .1) + (i ? 56 : 0);
+    const y = top + (i ? 56 : 0);
     win.style.cssText += ';left:' + left + 'px;top:' + y + 'px;transform:scale(' + s + ')';
     win.dataset.s = s;
   }
